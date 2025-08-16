@@ -10,7 +10,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "axios": "^1.10.0",
     "cors": "^2.8.5",
@@ -19,5 +18,14 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fikri221/lock-in-be.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fikri221/lock-in-be/issues"
+  },
+  "homepage": "https://github.com/fikri221/lock-in-be#readme",
+  "description": ""
 }
