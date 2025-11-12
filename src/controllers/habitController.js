@@ -153,7 +153,7 @@ const habitController = {
         } catch (error) {
             next(error);
         }
-    }
+    },
 
     // Get habit statistics
     getStats: async (req, res, next) => {
@@ -177,6 +177,32 @@ const habitController = {
                     }
                 },
                 order: [['logDate', 'ASC']]
+            });
+
+            const skippedCount = logs.filter(log => log.status === 'skipped').length;
+            const completedCount = logs.filter(log => log.status === 'completed').length;
+            const completionRate = Math.round((completedCount / logs.length) * 100) || 0;
+
+            res.status(200).json({
+                habit: {
+                    id: habit.id,
+                    name: habit.name,
+                    currentStreak: habit.currentStreak,
+                    longestStreak: habit.longestStreak,
+                    totalCompletions: habit.totalCompletions
+                },
+                period: {
+                    days: parseInt(day),
+                    startDate,
+                    endDate: format(new Date(), 'yyyy-MM-dd')
+                },
+                stats: {
+                    totalLogs: logs.length,
+                    skippedCount,
+                    completedCount,
+                    completionRate
+                },
+                logs
             });
         } catch (error) {
             next(error);
