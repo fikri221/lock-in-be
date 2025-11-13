@@ -1,6 +1,6 @@
-const User = require('./User');
-const Habit = require('./Habit');
-const HabitLog = require('./HabitLog');
+import User from './User.js';
+import Habit from './Habit.js';
+import HabitLog from './HabitLog.js';
 
 // Define associations
 User.hasMany(Habit, { foreignKey: 'userId', as: 'habits' });
@@ -12,7 +12,7 @@ HabitLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 Habit.hasMany(HabitLog, { foreignKey: 'habitId', as: 'logs' });
 HabitLog.belongsTo(Habit, { foreignKey: 'habitId', as: 'habit' });
 
-module.exports = {
+export {
     User,
     Habit,
     HabitLog

@@ -1,3 +1,4 @@
+const jwt = require("jsonwebtoken");
 const { User } = require("../models");
 
 
@@ -21,7 +22,7 @@ const auth = async (req, res, next) => {
         req.userId = user.id;
         next();
     } catch (error) {
-        return res.status(401).json({ error: "Invalid authentication token" });
+        return res.status(401).json({ error: "Invalid authentication token", details: error.message });
     }
 }
 

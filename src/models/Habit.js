@@ -1,3 +1,4 @@
+const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/database");
 
 
@@ -81,4 +82,4 @@ const Habit = sequelize.define("Habit", {
     tableName: "habits",
 });
 
-module.exports = Habit;
+export default Habit;

@@ -1,10 +1,11 @@
 const { format, subDays } = require("date-fns");
 const { Habit, HabitLog } = require("../models");
+const { Op } = require("sequelize");
 
 
 const habitController = {
     // Get all habits for a specific user
-    getAllHabits: async (req, res) => {
+    getAllHabits: async (req, res, next) => {
         try {
             const { active } = req.query;
 
@@ -31,7 +32,7 @@ const habitController = {
     },
 
     // Get a specific habit by ID
-    getHabitById: async (req, res) => {
+    getHabitById: async (req, res, next) => {
         try {
             const { id } = req.params;
             const habit = await Habit.findOne({

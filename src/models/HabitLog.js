@@ -1,3 +1,4 @@
+const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/database");
 
 
@@ -63,4 +64,4 @@ const HabitLog = sequelize.define("HabitLog", {
     ]
 });
 
-module.exports = HabitLog;
+export default HabitLog;
