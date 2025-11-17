@@ -9,8 +9,7 @@ import compression from "compression";
 
 // Import local modules dengan ekstensi .js
 import errorHandler from "./src/middleware/errorHandler.js";
-import { testConnection } from "./src/config/database.js";
-import { sequelize } from "./src/models/index.js";
+import { sequelize, testConnection } from "./src/config/database.js";
 
 // Import routes
 import authRoutes from "./src/routes/auth.js";
@@ -191,4 +190,4 @@ process.on("SIGTERM", () => {
 
 await startServer();
 
-module.exports = app;
+export default app;

@@ -1,12 +1,14 @@
-const { User } = require("../models");
+import { User } from "../models/index.js";
+import { sequelize } from "../config/database.js";
+import jwt from "jsonwebtoken";
 
 const generateToken = (userId) => {
-    const jwt = require("jsonwebtoken");
     return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
 }
 
 const authControllers = {
     register: async (req, res, next) => {
+        const t = await sequelize.transaction(); // start transaction
         try {
             const { name, email, password } = req.body;
 
@@ -17,9 +19,11 @@ const authControllers = {
             }
 
             // Create new user
-            const newUser = await User.create({ name, email, password });
+            const newUser = await User.create({ name, email, password }, { transaction: t });
             // Generate JWT token
             const token = generateToken(newUser.id);
+
+            await t.commit(); // commit transaction
 
             res.status(201).json({
                 message: "User registered successfully",
@@ -27,6 +31,7 @@ const authControllers = {
                 token
             });
         } catch (error) {
+            await t.rollback(); // rollback transaction on error
             next(error);
         }
     },
@@ -71,4 +76,4 @@ const authControllers = {
     }
 };
 
-module.exports = authControllers;
+export default authControllers;
