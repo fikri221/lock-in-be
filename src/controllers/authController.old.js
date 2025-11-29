@@ -6,7 +6,7 @@ const generateToken = (userId) => {
     return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
 }
 
-const authControllers = {
+const authController = {
     register: async (req, res, next) => {
         const t = await sequelize.transaction(); // start transaction
         try {
@@ -76,4 +76,4 @@ const authControllers = {
     }
 };
 
-export default authControllers;
+export default authController;
