@@ -1,8 +1,8 @@
 import express from 'express';
 const router = express.Router();
-import habitController from '../controllers/habitController.js';
-import auth from '../middleware/auth.js';
-import { validate, schemas } from '../middleware/validator.js';
+import habitController from '../controllers/habit.controller.js';
+import auth from '../middlewares/auth.js';
+import { validate, schemas } from '../middlewares/validator.js';
 
 // All routes here require authentication
 router.use(auth);

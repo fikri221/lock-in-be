@@ -215,7 +215,11 @@ class HabitService {
      * @param {Object} transaction - Sequelize transaction
      */
     async updateHabitStats(habit, transaction) {
+        // Increment total completions
         await habit.increment('totalCompletions', { transaction });
+        // Continue streak
+        await habit.increment('currentStreak', { transaction });
+        await habit.reload({ transaction });
 
         // Calculate streak
         const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -228,10 +232,6 @@ class HabitService {
         });
 
         if (yesterdayLog) {
-            // Continue streak
-            await habit.increment('currentStreak', { transaction });
-            await habit.reload({ transaction });
-
             // Update longest streak if needed
             if (habit.currentStreak > habit.longestStreak) {
                 await habit.update(

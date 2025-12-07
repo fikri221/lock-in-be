@@ -7,8 +7,11 @@ import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import compression from "compression";
 
+
+import cookieParser from "cookie-parser";
+
 // Import local modules dengan ekstensi .js
-import errorHandler from "./src/middleware/errorHandler.js";
+import errorHandler from "./src/middlewares/errorHandler.js";
 import { sequelize, testConnection } from "./src/config/database.js";
 
 // Import routes
@@ -41,7 +44,14 @@ app.use("/api/", apiLimiter);
 
 // Body parser middleware
 app.use(express.json());
+
+
+// ... imports
+
+// Body parser middleware
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Compression middleware
 app.use(compression());

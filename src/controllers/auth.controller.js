@@ -13,10 +13,17 @@ const authController = {
         try {
             const { user, token } = await authService.register(req.body);
 
+            // Set httpOnly cookie
+            res.cookie('token', token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            });
+
             res.status(201).json({
                 success: true,
                 message: "User registered successfully",
-                data: { user, token }
+                data: { user }
             });
         } catch (error) {
             next(error);
@@ -32,10 +39,17 @@ const authController = {
             const { email, password } = req.body;
             const { user, token } = await authService.login(email, password);
 
+            // Set httpOnly cookie
+            res.cookie('token', token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            });
+
             res.status(200).json({
                 success: true,
                 message: "Login successful",
-                data: { user, token }
+                data: { user }
             });
         } catch (error) {
             next(error);
@@ -48,7 +62,14 @@ const authController = {
      */
     me: async (req, res, next) => {
         try {
-            // req.user is set by auth middleware
+            // req.user is set by auth middleware (or optionalAuth)
+            if (!req.user) {
+                return res.status(200).json({
+                    success: true,
+                    data: { user: null }
+                });
+            }
+
             res.status(200).json({
                 success: true,
                 data: { user: req.user.toJSON() }
@@ -88,6 +109,22 @@ const authController = {
             res.status(200).json({
                 success: true,
                 message: "Password changed successfully"
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
+     * Logout user
+     * POST /api/auth/logout
+     */
+    logout: async (req, res, next) => {
+        try {
+            res.clearCookie('token');
+            res.status(200).json({
+                success: true,
+                message: "Logged out successfully"
             });
         } catch (error) {
             next(error);

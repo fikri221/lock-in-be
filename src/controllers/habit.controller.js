@@ -15,7 +15,7 @@ const habitController = {
 
             res.status(200).json({
                 success: true,
-                data: habits
+                habits
             });
         } catch (error) {
             next(error);
@@ -32,7 +32,7 @@ const habitController = {
 
             res.status(200).json({
                 success: true,
-                data: habit
+                habit
             });
         } catch (error) {
             next(error);
@@ -50,7 +50,7 @@ const habitController = {
             res.status(201).json({
                 success: true,
                 message: "Habit created successfully",
-                data: habit
+                habit
             });
         } catch (error) {
             next(error);
@@ -72,7 +72,7 @@ const habitController = {
             res.status(200).json({
                 success: true,
                 message: "Habit updated successfully",
-                data: habit
+                habit
             });
         } catch (error) {
             next(error);
@@ -113,7 +113,7 @@ const habitController = {
                 message: created
                     ? "Habit logged successfully"
                     : "Habit log updated successfully",
-                data: habitLog
+                habitLog
             });
         } catch (error) {
             next(error);
@@ -134,7 +134,7 @@ const habitController = {
 
             res.status(200).json({
                 success: true,
-                data: stats
+                stats
             });
         } catch (error) {
             next(error);
