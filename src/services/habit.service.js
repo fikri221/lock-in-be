@@ -209,6 +209,54 @@ class HabitService {
     }
 
     /**
+     * Cancel a habit completion
+     * @param {string} habitId - Habit ID
+     * @param {string} userId - User ID
+     * @param {Object} reqBody - Request body
+     * @returns {Promise<Object>} Cancelled habit log
+     */
+    async cancelCompletion(habitId, userId, reqBody) {
+        const t = await sequelize.transaction();
+
+        try {
+            const habit = await Habit.findOne({
+                where: { id: habitId, userId }
+            });
+
+            if (!habit) {
+                const error = new Error('Habit not found');
+                error.statusCode = 404;
+                throw error;
+            }
+
+            const today = format(new Date(), 'yyyy-MM-dd');
+
+            // Find today's log
+            const log = await HabitLog.findOne({
+                where: { habitId, logDate: today, status: 'COMPLETED' }
+            });
+
+            if (!log) {
+                const error = new Error('No completed log found for today');
+                error.statusCode = 404;
+                throw error;
+            }
+
+            await log.update({ status: 'CANCELLED', cancelledAt: new Date(), cancelledReason: reqBody || "user cancelled" }, { transaction: t });
+            // Update habit stats
+            // Decrement total completions
+            await habit.decrement('totalCompletions', { transaction: t });
+            await habit.decrement('currentStreak', { transaction: t });
+            await t.commit();
+
+            return log;
+        } catch (error) {
+            await t.rollback();
+            throw error;
+        }
+    }
+
+    /**
      * Calculate and update habit statistics
      * @private
      * @param {Object} habit - Habit instance

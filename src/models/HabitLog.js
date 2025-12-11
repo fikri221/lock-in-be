@@ -27,11 +27,19 @@ const HabitLog = sequelize.define("HabitLog", {
         type: DataTypes.DATE,
         fields: "completed_at",
     },
+    cancelledAt: {
+        type: DataTypes.DATE,
+        fields: "cancelled_at",
+    },
+    cancelledReason: {
+        type: DataTypes.STRING,
+        fields: "cancelled_reason",
+    },
     status: {
         type: DataTypes.STRING,
         defaultValue: "PENDING",
         validate: {
-            isIn: [["PENDING", "COMPLETED", "FAILED", "SKIPPED"]],
+            isIn: [["PENDING", "COMPLETED", "FAILED", "SKIPPED", "CANCELLED"]],
         },
     },
     weather: {
