@@ -41,7 +41,7 @@ const schemas = {
         type: Joi.string().valid("OUTDOOR", "WORK", "HEALTH", "LEARNING", "OTHER"),
         icon: Joi.string().max(10),
         color: Joi.string().pattern(/^#[0-9A-F]{6}$/i),
-        scheduledTime: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/),
+        scheduledTime: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/).allow("", null),
         isWeatherDependent: Joi.boolean(),
         requiresGoodWeather: Joi.boolean(),
         reminderEnabled: Joi.boolean()
@@ -53,7 +53,7 @@ const schemas = {
         type: Joi.string().valid("OUTDOOR", "WORK", "HEALTH", "LEARNING", "OTHER"),
         icon: Joi.string().max(10),
         color: Joi.string().pattern(/^#[0-9A-F]{6}$/i),
-        scheduledTime: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/),
+        scheduledTime: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/).allow("", null),
         isWeatherDependent: Joi.boolean(),
         requiresGoodWeather: Joi.boolean(),
         reminderEnabled: Joi.boolean(),

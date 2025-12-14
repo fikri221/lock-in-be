@@ -6,6 +6,11 @@
  */
 
 import habitService from '../../services/habit.service.js';
+import { sequelize } from '../../config/database.js';
+
+afterAll(async () => {
+    await sequelize.close();
+});
 
 /**
  * Test Suite for createHabit method
