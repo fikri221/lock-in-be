@@ -233,7 +233,7 @@ class HabitService {
 
             // Find today's log
             const log = await HabitLog.findOne({
-                where: { habitId, logDate: today, status: 'COMPLETED' }
+                where: { habitId, logDate: today, status: ['COMPLETED', 'SKIPPED'] }
             });
 
             if (!log) {
@@ -242,11 +242,15 @@ class HabitService {
                 throw error;
             }
 
+            const wasCompleted = log.status === 'COMPLETED';
+
             await log.update({ status: 'CANCELLED', cancelledAt: new Date(), cancelledReason: reqBody || "user cancelled" }, { transaction: t });
-            // Update habit stats
-            // Decrement total completions
-            await habit.decrement('totalCompletions', { transaction: t });
-            await habit.decrement('currentStreak', { transaction: t });
+
+            // Update habit stats only if it was previously completed
+            if (wasCompleted) {
+                await habit.decrement('totalCompletions', { transaction: t });
+                await habit.decrement('currentStreak', { transaction: t });
+            }
             await t.commit();
 
             return log;
