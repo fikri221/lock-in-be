@@ -103,15 +103,7 @@ class HabitService {
         const t = await sequelize.transaction();
 
         try {
-            const habit = await Habit.findOne({
-                where: { id: habitId, userId }
-            });
-
-            if (!habit) {
-                const error = new Error('Habit not found');
-                error.statusCode = 404;
-                throw error;
-            }
+            const habit = await this._getHabit(habitId, userId, t);
 
             // Business validation
             if (updateData.scheduledTime && !this.isValidTime(updateData.scheduledTime)) {
@@ -138,15 +130,7 @@ class HabitService {
         const t = await sequelize.transaction();
 
         try {
-            const habit = await Habit.findOne({
-                where: { id: habitId, userId }
-            });
-
-            if (!habit) {
-                const error = new Error('Habit not found');
-                error.statusCode = 404;
-                throw error;
-            }
+            const habit = await this._getHabit(habitId, userId, t);
 
             await habit.update({ isActive: false }, { transaction: t });
             await t.commit();
@@ -168,18 +152,21 @@ class HabitService {
 
         try {
             // Verify habit ownership
-            const habit = await Habit.findOne({
-                where: { id: habitId, userId }
-            });
+            const habit = await this._getHabit(habitId, userId, t);
 
-            if (!habit) {
-                const error = new Error('Habit not found');
-                error.statusCode = 404;
-                throw error;
-            }
-
+            // Use UTC-safe date handling or accept date from client in future
+            // For now, consistent server date
             const today = format(new Date(), 'yyyy-MM-dd');
             const { status, notes, mood, energy, weather } = logData;
+
+            // Check for existing log to prevent double stats increment
+            const existingLog = await HabitLog.findOne({
+                where: { habitId, logDate: today },
+                transaction: t
+            });
+
+            const wasCompleted = existingLog && existingLog.status === 'COMPLETED';
+            const isNowCompleted = status === 'COMPLETED';
 
             // Upsert habit log
             const [habitLog, created] = await HabitLog.upsert({
@@ -187,16 +174,21 @@ class HabitService {
                 userId,
                 logDate: today,
                 status,
-                completedAt: status === 'COMPLETED' ? new Date() : null,
+                completedAt: isNowCompleted ? (existingLog?.completedAt || new Date()) : null,
                 notes,
                 mood,
                 energy,
                 weather
             }, { returning: true, transaction: t });
 
-            // Update stats if completed
-            if (status === 'COMPLETED') {
+            // Update stats intelligently
+            if (isNowCompleted && !wasCompleted) {
+                // Changing from Not Completed -> Completed: Increment
                 await this.updateHabitStats(habit, t);
+            } else if (!isNowCompleted && wasCompleted) {
+                // Changing from Completed -> Not Completed: Decrement
+                await habit.decrement('totalCompletions', { transaction: t });
+                await habit.decrement('currentStreak', { transaction: t });
             }
 
             await t.commit();
@@ -219,15 +211,7 @@ class HabitService {
         const t = await sequelize.transaction();
 
         try {
-            const habit = await Habit.findOne({
-                where: { id: habitId, userId }
-            });
-
-            if (!habit) {
-                const error = new Error('Habit not found');
-                error.statusCode = 404;
-                throw error;
-            }
+            const habit = await this._getHabit(habitId, userId, t);
 
             const today = format(new Date(), 'yyyy-MM-dd');
 
@@ -305,15 +289,7 @@ class HabitService {
      * @returns {Promise<Object>} Statistics object
      */
     async getHabitStats(habitId, userId, days = 30) {
-        const habit = await Habit.findOne({
-            where: { id: habitId, userId }
-        });
-
-        if (!habit) {
-            const error = new Error('Habit not found');
-            error.statusCode = 404;
-            throw error;
-        }
+        const habit = await this._getHabit(habitId, userId);
 
         const startDate = format(subDays(new Date(), parseInt(days)), 'yyyy-MM-dd');
         const logs = await HabitLog.findAll({
@@ -366,6 +342,30 @@ class HabitService {
             completedCount,
             completionRate
         };
+    }
+
+    /**
+     * Helper to get habit and verify ownership
+     * @private
+     * @param {string} habitId
+     * @param {string} userId
+     * @param {Object} [transaction]
+     * @returns {Promise<Object>}
+     */
+    async _getHabit(habitId, userId, transaction = null) {
+        const options = {
+            where: { id: habitId, userId }
+        };
+        if (transaction) options.transaction = transaction;
+
+        const habit = await Habit.findOne(options);
+
+        if (!habit) {
+            const error = new Error('Habit not found');
+            error.statusCode = 404;
+            throw error;
+        }
+        return habit;
     }
 
     /**
