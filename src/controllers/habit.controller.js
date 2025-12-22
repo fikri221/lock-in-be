@@ -161,6 +161,27 @@ const habitController = {
         } catch (error) {
             next(error);
         }
+    },
+
+    /**
+     * Get habit heatmap
+     * GET /api/habits/:id/heatmap?day=90
+     */
+    getHeatmap: async (req, res, next) => {
+        try {
+            const heatmap = await habitService.getHabitHeatmap(
+                req.params.id,
+                req.userId,
+                req.query.day
+            );
+
+            res.status(200).json({
+                success: true,
+                heatmap
+            });
+        } catch (error) {
+            next(error);
+        }
     }
 };
 

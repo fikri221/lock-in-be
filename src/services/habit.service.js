@@ -292,11 +292,13 @@ class HabitService {
         const habit = await this._getHabit(habitId, userId);
 
         const startDate = format(subDays(new Date(), parseInt(days)), 'yyyy-MM-dd');
+        const endDate = format(new Date(), 'yyyy-MM-dd');
+
         const logs = await HabitLog.findAll({
             where: {
                 habitId,
                 logDate: {
-                    [Op.gte]: startDate
+                    [Op.between]: [startDate, endDate]
                 }
             },
             order: [['log_date', 'ASC']]
@@ -316,10 +318,48 @@ class HabitService {
             period: {
                 days: parseInt(days),
                 startDate,
-                endDate: format(new Date(), 'yyyy-MM-dd')
+                endDate
             },
             stats,
             logs
+        };
+    }
+
+    /**
+     * Get heatmap data for a period
+     * @param {string} habitId - Habit ID
+     * @param {string} userId - User ID
+     * @param {number} days - Number of days to look back (default: 90)
+     * @returns {Promise<Object>} Heatmap data
+     */
+    async getHabitHeatmap(habitId, userId, days = 90) {
+        // const habit = await this._getHabit(habitId, userId);
+
+        const today = format(new Date(), 'yyyy-MM-dd');
+        const startDate = format(subDays(today, parseInt(days) - 1), 'yyyy-MM-dd');
+        const endDate = format(today, 'yyyy-MM-dd');
+
+        const logs = await HabitLog.findAll({
+            where: {
+                habitId,
+                logDate: {
+                    [Op.gte]: startDate
+                }
+            },
+            order: [['log_date', 'ASC']]
+        });
+
+        // Create map of date -> status
+        const heatmapData = {};
+        logs.forEach(log => {
+            heatmapData[log.logDate] = { status: log.status, notes: log.notes };
+        });
+
+        return {
+            days: parseInt(days),
+            startDate,
+            endDate,
+            heatmapData
         };
     }
 
@@ -330,17 +370,51 @@ class HabitService {
      * @returns {Object} Statistics
      */
     calculateStats(logs) {
-        const skippedCount = logs.filter(log => log.status === 'SKIPPED').length;
-        const completedCount = logs.filter(log => log.status === 'COMPLETED').length;
-        const completionRate = logs.length > 0
-            ? Math.round((completedCount / logs.length) * 100)
+        const totalLogs = logs.length;
+        const skippedLogs = logs.filter(log => log.status === 'SKIPPED');
+        const completedLogs = logs.filter(log => log.status === 'COMPLETED');
+        const completionRate = totalLogs > 0
+            ? Math.round((completedLogs.length / totalLogs) * 100)
             : 0;
 
+        // Calculate average mood and energy
+        // Next phase
+
+        // Find best day of week
+        const dayStats = {};
+        completedLogs.forEach(log => {
+            // Get day of week (0 = Sunday, 1 = Monday, ...)
+            const day = new Date(log.logDate).getDay();
+            const completedAt = new Date(log.logDate).getTime();
+            // Put day in dayStats
+            if (!dayStats[day]) {
+                dayStats[day] = {
+                    count: 1,
+                    lastCompletedAt: completedAt
+                };
+            } else {
+                dayStats[day].count += 1;
+                dayStats[day].lastCompletedAt = Math.max(dayStats[day].lastCompletedAt, completedAt);
+            }
+        });
+
+        // Find best day of week
+        // Sort by count and then by lastCompletedAt
+        const bestDay = Object.keys(dayStats).length > 0
+            ? Object.entries(dayStats).sort((a, b) => b[1].count - a[1].count || b[1].lastCompletedAt - a[1].lastCompletedAt)[0]
+            : null;
+
+        const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const bestDayName = bestDay ? DAY_NAMES[Number(bestDay[0])] : null;
+        const bestDayCount = bestDay ? bestDay[1].count : 0;
+
         return {
-            totalLogs: logs.length,
-            skippedCount,
-            completedCount,
-            completionRate
+            totalLogs,
+            skippedCount: skippedLogs.length,
+            completedCount: completedLogs.length,
+            completionRate,
+            bestDay: bestDayName,
+            bestDayCount
         };
     }
 
