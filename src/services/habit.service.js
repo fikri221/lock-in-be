@@ -2,6 +2,7 @@ import { Habit, HabitLog } from '../models/index.js';
 import { sequelize } from '../config/database.js';
 import { format, subDays } from 'date-fns';
 import { Op } from 'sequelize';
+import MoodEnergyLog from '../models/MoodEnergyLog.js';
 
 /**
  * Habit Service - Contains all business logic for habit operations
@@ -191,6 +192,39 @@ class HabitService {
             await t.commit();
 
             return { habitLog, created };
+        } catch (error) {
+            await t.rollback();
+            throw error;
+        }
+    }
+
+    /**
+     * Mood and energy level log
+     * @param {string} userId - User ID
+     * @param {Object} logData - Log data (mood, energy, notes etc.)
+     * @returns {Promise<Object>} { moodEnergyLog, created }
+     */
+    async logMoodEnergy(userId, logData) {
+        const t = await sequelize.transaction();
+
+        try {
+            // Use UTC-safe date handling or accept date from client in future
+            // For now, consistent server date
+            const today = format(new Date(), 'yyyy-MM-dd');
+            const { mood, energy, notes } = logData;
+
+            // Upsert habit log
+            const [moodEnergyLog, created] = await MoodEnergyLog.upsert({
+                userId,
+                logDate: today,
+                mood,
+                energy,
+                notes
+            }, { returning: true, transaction: t });
+
+            await t.commit();
+
+            return { moodEnergyLog, created };
         } catch (error) {
             await t.rollback();
             throw error;

@@ -18,6 +18,7 @@ router.post('/:id/cancel', habitController.cancelCompletion);
 
 // Habit log routes and stats
 router.post('/:id/logs', validate(schemas.logHabit), habitController.logHabitCompletion);
+router.post('/:id/mood-energy', validate(schemas.logMoodEnergy), habitController.logMoodEnergy);
 router.get('/:id/stats', habitController.getStats);
 router.get('/:id/heatmap', habitController.getHeatmap);
 

@@ -63,6 +63,12 @@ const schemas = {
     logHabit: Joi.object({
         status: Joi.string().valid("COMPLETED", "FAILED", "SKIPPED").required(),
         weather: Joi.object()
+    }),
+
+    logMoodEnergy: Joi.object({
+        mood: Joi.number().valid(1, 2, 3, 4, 5).required(),
+        energy: Joi.number().valid(1, 2, 3, 4, 5).required(),
+        notes: Joi.string().allow('', null)
     })
 };
 

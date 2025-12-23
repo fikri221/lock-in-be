@@ -45,23 +45,6 @@ const HabitLog = sequelize.define("HabitLog", {
     weather: {
         type: DataTypes.JSONB
     },
-    // notes: {
-    //     type: DataTypes.TEXT
-    // },
-    // mood: {
-    //     type: DataTypes.INTEGER,
-    //     validate: {
-    //         min: 1,
-    //         max: 5
-    //     }
-    // },
-    // energy: {
-    //     type: DataTypes.INTEGER,
-    //     validate: {
-    //         min: 1,
-    //         max: 5
-    //     }
-    // },
 }, {
     tableName: "habit_logs",
     indexes: [

@@ -97,6 +97,29 @@ const habitController = {
     },
 
     /**
+     * Log mood and energy
+     * POST /api/habits/:id/mood-energy
+     */
+    logMoodEnergy: async (req, res, next) => {
+        try {
+            const { moodEnergyLog, created } = await habitService.logMoodEnergy(
+                req.userId,
+                req.body
+            );
+
+            res.status(200).json({
+                success: true,
+                message: created
+                    ? "Mood and energy logged successfully"
+                    : "Mood and energy log updated successfully",
+                moodEnergyLog
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
      * Log a habit completion
      * POST /api/habits/:id/log
      */
