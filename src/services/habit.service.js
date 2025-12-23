@@ -144,7 +144,7 @@ class HabitService {
      * Log habit completion with streak calculation
      * @param {string} habitId - Habit ID
      * @param {string} userId - User ID
-     * @param {Object} logData - Log data (status, notes, mood, etc.)
+     * @param {Object} logData - Log data (status, weather etc.)
      * @returns {Promise<Object>} { habitLog, created }
      */
     async logHabitCompletion(habitId, userId, logData) {
@@ -157,7 +157,7 @@ class HabitService {
             // Use UTC-safe date handling or accept date from client in future
             // For now, consistent server date
             const today = format(new Date(), 'yyyy-MM-dd');
-            const { status, notes, mood, energy, weather } = logData;
+            const { status, weather } = logData;
 
             // Check for existing log to prevent double stats increment
             const existingLog = await HabitLog.findOne({
@@ -175,9 +175,6 @@ class HabitService {
                 logDate: today,
                 status,
                 completedAt: isNowCompleted ? (existingLog?.completedAt || new Date()) : null,
-                notes,
-                mood,
-                energy,
                 weather
             }, { returning: true, transaction: t });
 

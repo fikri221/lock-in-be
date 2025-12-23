@@ -115,7 +115,7 @@ const habitController = {
         const t = await sequelize.transaction(); // start transaction
         try {
             const { id } = req.params;
-            const { status, notes, mood, energy, weather } = req.body;
+            const { status, weather } = req.body;
 
             // Verify habit log belong to the user
             const habit = await Habit.findOne({ where: { id, userId: req.userId } });
@@ -133,9 +133,6 @@ const habitController = {
                 logDate: today,
                 status,
                 completedAt: status === 'COMPLETED' ? new Date() : null,
-                notes,
-                mood,
-                energy,
                 weather
             }, { returning: true, transaction: t });
 
