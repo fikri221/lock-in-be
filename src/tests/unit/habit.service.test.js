@@ -23,7 +23,7 @@ describe('HabitService - createHabit', () => {
             userId: 'd9c95c3b-c488-4a3c-bb04-b9a7ab3a4d43',
             name: 'Test Habit',
             description: 'This is a test habit',
-            type: 'WORK'
+            category: 'WORK'
         };
 
         // ACT
@@ -33,7 +33,7 @@ describe('HabitService - createHabit', () => {
         expect(result).toBeDefined();
         expect(result.name).toBe('Test Habit');
         expect(result.description).toBe('This is a test habit');
-        expect(result.type).toBe('WORK');
+        expect(result.category).toBe('WORK');
         expect(result.userId).toBe(newHabit.userId);
     });
 })

@@ -20,7 +20,7 @@ const Habit = sequelize.define("Habit", {
     description: {
         type: DataTypes.TEXT,
     },
-    type: {
+    category: {
         type: DataTypes.STRING,
         defaultValue: "OTHER",
         validate: {
@@ -38,6 +38,35 @@ const Habit = sequelize.define("Habit", {
     frequency: {
         type: DataTypes.STRING,
         defaultValue: "DAILY",
+    },
+    habitType: {
+        type: DataTypes.STRING,
+        defaultValue: "boolean",
+        field: "habit_type",
+    },
+    targetValue: {
+        type: DataTypes.INTEGER,
+        field: "target_value",
+    },
+    targetUnit: {
+        type: DataTypes.STRING,
+        field: "target_unit",
+    },
+    targetCount: {
+        type: DataTypes.INTEGER,
+        defaultValue: 1,
+        field: "target_count",
+    },
+    targetDays: {
+        type: DataTypes.ARRAY(DataTypes.STRING),
+        field: "target_days",
+        allowNull: true,
+        comment: '[1,3,5] for Mon/Wed/Fri',
+    },
+    allowFlexible: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        field: "allow_flexible",
     },
     scheduledTime: {
         type: DataTypes.STRING,

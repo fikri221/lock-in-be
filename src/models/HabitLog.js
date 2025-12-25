@@ -35,6 +35,10 @@ const HabitLog = sequelize.define("HabitLog", {
         type: DataTypes.STRING,
         fields: "cancelled_reason",
     },
+    actualValue: {
+        type: DataTypes.DECIMAL,
+        fields: "actual_value",
+    },
     status: {
         type: DataTypes.STRING,
         defaultValue: "PENDING",
