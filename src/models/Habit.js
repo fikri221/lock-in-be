@@ -69,7 +69,7 @@ const Habit = sequelize.define("Habit", {
         field: "allow_flexible",
     },
     scheduledTime: {
-        type: DataTypes.STRING,
+        type: DataTypes.TIME,
         fields: "scheduled_time",
     },
     isWeatherDependent: {

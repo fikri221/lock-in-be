@@ -42,13 +42,22 @@ const schemas = {
         icon: Joi.string().max(10),
         color: Joi.string().pattern(/^#[0-9A-F]{6}$/i),
         habitType: Joi.string().valid("boolean", "measurable"),
-        targetValue: Joi.number().when('habitType', { is: 'measurable', then: Joi.number().required() }),
-        targetUnit: Joi.string().when('habitType', { is: 'measurable', then: Joi.string().required() }),
-        targetCount: Joi.number().when('habitType', { is: 'measurable', then: Joi.number().required() }),
-        scheduledTime: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/).allow("", null),
+        targetValue: Joi.number()
+            .when('habitType', { is: 'measurable', then: Joi.number().required(), otherwise: Joi.forbidden() }),
+        targetUnit: Joi.string()
+            .when('habitType', { is: 'measurable', then: Joi.string().required(), otherwise: Joi.forbidden() }),
+        targetCount: Joi.number()
+            .when('habitType', { is: 'measurable', then: Joi.number().required(), otherwise: Joi.forbidden() }),
+        scheduledTime: Joi.string()
+            .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
+            .optional()
+            .allow(null),
         isWeatherDependent: Joi.boolean(),
         requiresGoodWeather: Joi.boolean(),
-        targetDays: Joi.array().items(Joi.number().valid(1, 2, 3, 4, 5, 6, 7)),
+        targetDays: Joi.array()
+            .items(Joi.number().valid(1, 2, 3, 4, 5, 6, 7))
+            .min(1)
+            .when('allowFlexible', { is: false, then: Joi.required(), otherwise: Joi.optional() }),
         allowFlexible: Joi.boolean(),
         reminderEnabled: Joi.boolean()
     }),
@@ -60,13 +69,22 @@ const schemas = {
         icon: Joi.string().max(10),
         color: Joi.string().pattern(/^#[0-9A-F]{6}$/i),
         habitType: Joi.string().valid("boolean", "measurable"),
-        targetValue: Joi.number().when('habitType', { is: 'measurable', then: Joi.number().required() }),
-        targetUnit: Joi.string().when('habitType', { is: 'measurable', then: Joi.string().required() }),
-        targetCount: Joi.number().when('habitType', { is: 'measurable', then: Joi.number().required() }),
-        scheduledTime: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/).allow("", null),
+        targetValue: Joi.number()
+            .when('habitType', { is: 'measurable', then: Joi.number().required(), otherwise: Joi.forbidden() }),
+        targetUnit: Joi.string()
+            .when('habitType', { is: 'measurable', then: Joi.string().required(), otherwise: Joi.forbidden() }),
+        targetCount: Joi.number()
+            .when('habitType', { is: 'measurable', then: Joi.number().required(), otherwise: Joi.forbidden() }),
+        scheduledTime: Joi.string()
+            .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
+            .optional()
+            .allow(null),
         isWeatherDependent: Joi.boolean(),
         requiresGoodWeather: Joi.boolean(),
-        targetDays: Joi.array().items(Joi.number().valid(1, 2, 3, 4, 5, 6, 7)),
+        targetDays: Joi.array()
+            .items(Joi.number().valid(1, 2, 3, 4, 5, 6, 7))
+            .min(1)
+            .when('allowFlexible', { is: false, then: Joi.required(), otherwise: Joi.optional() }),
         allowFlexible: Joi.boolean(),
         reminderEnabled: Joi.boolean(),
         isActive: Joi.boolean()
@@ -74,7 +92,7 @@ const schemas = {
 
     logHabit: Joi.object({
         status: Joi.string().valid("COMPLETED", "FAILED", "SKIPPED").required(),
-        actualValue: Joi.number().when('habitType', { is: 'measurable', then: Joi.number().required() }),
+        actualValue: Joi.number().when('habitType', { is: 'measurable', then: Joi.number().required(), otherwise: Joi.forbidden() }),
         weather: Joi.object()
     }),
 
