@@ -46,16 +46,15 @@ const schemas = {
             .when('habitType', { is: 'measurable', then: Joi.number().required(), otherwise: Joi.forbidden() }),
         targetUnit: Joi.string()
             .when('habitType', { is: 'measurable', then: Joi.string().required(), otherwise: Joi.forbidden() }),
-        targetCount: Joi.number()
-            .when('habitType', { is: 'measurable', then: Joi.number().required(), otherwise: Joi.forbidden() }),
+        targetCount: Joi.number().optional(),
         scheduledTime: Joi.string()
             .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
             .optional()
-            .allow(null),
+            .allow('', null),
         isWeatherDependent: Joi.boolean(),
         requiresGoodWeather: Joi.boolean(),
         targetDays: Joi.array()
-            .items(Joi.number().valid(1, 2, 3, 4, 5, 6, 7))
+            .items(Joi.number().valid(0, 1, 2, 3, 4, 5, 6, 7))
             .min(1)
             .when('allowFlexible', { is: false, then: Joi.required(), otherwise: Joi.optional() }),
         allowFlexible: Joi.boolean(),
@@ -73,16 +72,15 @@ const schemas = {
             .when('habitType', { is: 'measurable', then: Joi.number().required(), otherwise: Joi.forbidden() }),
         targetUnit: Joi.string()
             .when('habitType', { is: 'measurable', then: Joi.string().required(), otherwise: Joi.forbidden() }),
-        targetCount: Joi.number()
-            .when('habitType', { is: 'measurable', then: Joi.number().required(), otherwise: Joi.forbidden() }),
+        targetCount: Joi.number().optional(),
         scheduledTime: Joi.string()
             .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
             .optional()
-            .allow(null),
+            .allow('', null),
         isWeatherDependent: Joi.boolean(),
         requiresGoodWeather: Joi.boolean(),
         targetDays: Joi.array()
-            .items(Joi.number().valid(1, 2, 3, 4, 5, 6, 7))
+            .items(Joi.number().valid(0, 1, 2, 3, 4, 5, 6, 7))
             .min(1)
             .when('allowFlexible', { is: false, then: Joi.required(), otherwise: Joi.optional() }),
         allowFlexible: Joi.boolean(),
