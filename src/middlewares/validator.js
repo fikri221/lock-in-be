@@ -90,7 +90,7 @@ const schemas = {
 
     logHabit: Joi.object({
         status: Joi.string().valid("COMPLETED", "FAILED", "SKIPPED").required(),
-        actualValue: Joi.number().when('habitType', { is: 'measurable', then: Joi.number().required(), otherwise: Joi.forbidden() }),
+        actualValue: Joi.number().when('habitType', { is: 'measurable', then: Joi.number().required(), otherwise: Joi.optional() }),
         weather: Joi.object()
     }),
 

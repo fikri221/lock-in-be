@@ -158,7 +158,7 @@ class HabitService {
             // Use UTC-safe date handling or accept date from client in future
             // For now, consistent server date
             const today = format(new Date(), 'yyyy-MM-dd');
-            const { status, weather } = logData;
+            const { status, weather, actualValue } = logData;
 
             // Check for existing log to prevent double stats increment
             const existingLog = await HabitLog.findOne({
@@ -176,7 +176,8 @@ class HabitService {
                 logDate: today,
                 status,
                 completedAt: isNowCompleted ? (existingLog?.completedAt || new Date()) : null,
-                weather
+                weather,
+                actualValue
             }, { returning: true, transaction: t });
 
             // Update stats intelligently
