@@ -61,7 +61,7 @@ class HabitService {
                 },
                 required: false
             }],
-            order: [['created_at', 'DESC']]
+            order: [['createdAt', 'DESC']]
         });
 
         return habits;
@@ -79,7 +79,7 @@ class HabitService {
             include: [{
                 model: HabitLog,
                 as: 'logs',
-                order: [['log_date', 'DESC']],
+                order: [['logDate', 'DESC']],
                 limit: 10
             }],
         });
@@ -333,7 +333,7 @@ class HabitService {
                     [Op.between]: [startDate, endDate]
                 }
             },
-            order: [['log_date', 'ASC']]
+            order: [['logDate', 'ASC']]
         });
 
         // Calculate statistics
@@ -378,7 +378,7 @@ class HabitService {
                     [Op.gte]: startDate
                 }
             },
-            order: [['log_date', 'ASC']]
+            order: [['logDate', 'ASC']]
         });
 
         // Create map of date -> status

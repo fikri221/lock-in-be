@@ -11,7 +11,7 @@ const Habit = sequelize.define("Habit", {
     userId: {
         type: DataTypes.UUID,
         allowNull: false,
-        fields: "user_id",
+        field: "user_id",
     },
     name: {
         type: DataTypes.STRING,
@@ -70,42 +70,42 @@ const Habit = sequelize.define("Habit", {
     },
     scheduledTime: {
         type: DataTypes.TIME,
-        fields: "scheduled_time",
+        field: "scheduled_time",
     },
     isWeatherDependent: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
-        fields: "is_weather_dependent",
+        field: "is_weather_dependent",
     },
     requiresGoodWeather: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
-        fields: "requires_good_weather",
+        field: "requires_good_weather",
     },
     reminderEnabled: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
-        fields: "reminder_enabled",
+        field: "reminder_enabled",
     },
     currentStreak: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
-        fields: "current_streak",
+        field: "current_streak",
     },
     longestStreak: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
-        fields: "longest_streak",
+        field: "longest_streak",
     },
     totalCompletions: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
-        fields: "total_completions",
+        field: "total_completions",
     },
     isActive: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
-        fields: "is_active",
+        field: "is_active",
     },
 }, {
     tableName: "habits",

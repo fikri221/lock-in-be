@@ -11,33 +11,33 @@ const HabitLog = sequelize.define("HabitLog", {
     habitId: {
         type: DataTypes.UUID,
         allowNull: false,
-        fields: "habit_id",
+        field: "habit_id",
     },
     userId: {
         type: DataTypes.UUID,
         allowNull: false,
-        fields: "user_id",
+        field: "user_id",
     },
     logDate: {
         type: DataTypes.DATEONLY,
         allowNull: false,
-        fields: "log_date",
+        field: "log_date",
     },
     completedAt: {
         type: DataTypes.DATE,
-        fields: "completed_at",
+        field: "completed_at",
     },
     cancelledAt: {
         type: DataTypes.DATE,
-        fields: "cancelled_at",
+        field: "cancelled_at",
     },
     cancelledReason: {
         type: DataTypes.STRING,
-        fields: "cancelled_reason",
+        field: "cancelled_reason",
     },
     actualValue: {
         type: DataTypes.DECIMAL,
-        fields: "actual_value",
+        field: "actual_value",
     },
     status: {
         type: DataTypes.STRING,
