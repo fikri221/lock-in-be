@@ -51,15 +51,33 @@ class HabitService {
             where.isActive = filters.active === 'true';
         }
 
+        // Determine log filter
+        // Default: today only (backward compatibility)
+        let logWhere = {
+            logDate: format(new Date(), 'yyyy-MM-dd')
+        };
+
+        if (filters.startDate && filters.endDate) {
+            // Date range
+            logWhere = {
+                logDate: {
+                    [Op.between]: [filters.startDate, filters.endDate]
+                }
+            };
+        } else if (filters.date) {
+            // Specific single date
+            logWhere = {
+                logDate: filters.date
+            };
+        }
+
         const habits = await Habit.findAll({
             where,
             include: [{
                 model: HabitLog,
                 as: 'logs',
-                where: {
-                    logDate: format(new Date(), 'yyyy-MM-dd')
-                },
-                required: false
+                where: logWhere,
+                required: false, // Left join: return habit even if no logs found
             }],
             order: [['createdAt', 'DESC']]
         });
