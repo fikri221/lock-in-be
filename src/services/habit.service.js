@@ -78,6 +78,8 @@ class HabitService {
                 as: 'logs',
                 where: logWhere,
                 required: false, // Left join: return habit even if no logs found
+                order: [['logDate', 'DESC']],
+                limit: 10
             }],
             order: [['createdAt', 'DESC']]
         });
@@ -175,13 +177,11 @@ class HabitService {
 
             // Use UTC-safe date handling or accept date from client in future
             // For now, consistent server date
-            const today = format(new Date(), 'yyyy-MM-dd');
-            const { status, weather, actualValue } = logData;
+            const { status, weather, actualValue, logDate = format(new Date(), 'yyyy-MM-dd') } = logData;
 
             // Check for existing log to prevent double stats increment
             const existingLog = await HabitLog.findOne({
-                where: { habitId, logDate: today },
-                transaction: t
+                where: { habitId, logDate }
             });
 
             const wasCompleted = existingLog && existingLog.status === 'COMPLETED';
@@ -191,7 +191,7 @@ class HabitService {
             const [habitLog, created] = await HabitLog.upsert({
                 habitId,
                 userId,
-                logDate: today,
+                logDate,
                 status,
                 completedAt: isNowCompleted ? (existingLog?.completedAt || new Date()) : null,
                 weather,
@@ -201,7 +201,7 @@ class HabitService {
             // Update stats intelligently
             if (isNowCompleted && !wasCompleted) {
                 // Changing from Not Completed -> Completed: Increment
-                await this.updateHabitStats(habit, t);
+                await this.updateHabitStats(habit, t, logDate);
             } else if (!isNowCompleted && wasCompleted) {
                 // Changing from Completed -> Not Completed: Decrement
                 await habit.decrement('totalCompletions', { transaction: t });
@@ -254,31 +254,33 @@ class HabitService {
      * Cancel a habit completion
      * @param {string} habitId - Habit ID
      * @param {string} userId - User ID
-     * @param {Object} reqBody - Request body
+     * @param {Object} logData - Log data (status, cancelledAt, cancelledReason)
      * @returns {Promise<Object>} Cancelled habit log
      */
-    async cancelCompletion(habitId, userId, reqBody) {
+    async cancelCompletion(habitId, userId, logData) {
         const t = await sequelize.transaction();
 
         try {
             const habit = await this._getHabit(habitId, userId, t);
 
-            const today = format(new Date(), 'yyyy-MM-dd');
+            // Use UTC-safe date handling or accept date from client in future
+            // For now, consistent server date
+            const { cancelledReason, logDate = format(new Date(), 'yyyy-MM-dd') } = logData;
 
             // Find today's log
             const log = await HabitLog.findOne({
-                where: { habitId, logDate: today, status: ['COMPLETED', 'SKIPPED'] }
+                where: { habitId, logDate }
             });
 
             if (!log) {
-                const error = new Error('No completed log found for today');
+                const error = new Error(`No completed log found for date: ${logDate}`);
                 error.statusCode = 404;
                 throw error;
             }
 
             const wasCompleted = log.status === 'COMPLETED';
 
-            await log.update({ status: 'CANCELLED', cancelledAt: new Date(), cancelledReason: reqBody || "user cancelled" }, { transaction: t });
+            await log.update({ status: 'CANCELLED', cancelledAt: new Date(), cancelledReason: cancelledReason || "user cancelled" }, { transaction: t });
 
             // Update habit stats only if it was previously completed
             if (wasCompleted) {
@@ -299,8 +301,9 @@ class HabitService {
      * @private
      * @param {Object} habit - Habit instance
      * @param {Object} transaction - Sequelize transaction
+     * @param {string} logDate - Date of the log being updated
      */
-    async updateHabitStats(habit, transaction) {
+    async updateHabitStats(habit, transaction, logDate = null) {
         // Increment total completions
         await habit.increment('totalCompletions', { transaction });
         // Continue streak
@@ -308,7 +311,8 @@ class HabitService {
         await habit.reload({ transaction });
 
         // Calculate streak
-        const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+        const baseDate = logDate ? new Date(logDate) : new Date();
+        const yesterday = format(subDays(baseDate, 1), 'yyyy-MM-dd');
         const yesterdayLog = await HabitLog.findOne({
             where: {
                 habitId: habit.id,
