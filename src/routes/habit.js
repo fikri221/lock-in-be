@@ -22,4 +22,11 @@ router.post('/:id/mood-energy', validate(schemas.logMoodEnergy), habitController
 router.get('/:id/stats', habitController.getStats);
 router.get('/:id/heatmap', habitController.getHeatmap);
 
+// Chart routes
+router.get('/:id/charts/target', habitController.getTargetChart);
+router.get('/:id/charts/score', habitController.getScoreChart);
+router.get('/:id/charts/history', habitController.getHistoryChart);
+router.get('/:id/charts/calendar', habitController.getCalendarChart);
+router.get('/:id/charts/frequency', habitController.getFrequencyChart);
+
 export default router;

@@ -205,6 +205,71 @@ const habitController = {
         } catch (error) {
             next(error);
         }
+    },
+
+    /**
+     * Get target chart data
+     * GET /api/habits/:id/charts/target
+     */
+    getTargetChart: async (req, res, next) => {
+        try {
+            const chartData = await habitService.getTargetChart(req.params.id, req.userId);
+            res.status(200).json({ success: true, data: chartData });
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
+     * Get score chart data
+     * GET /api/habits/:id/charts/score?period=day
+     */
+    getScoreChart: async (req, res, next) => {
+        try {
+            const chartData = await habitService.getScoreChart(req.params.id, req.userId, req.query.period);
+            res.status(200).json({ success: true, data: chartData });
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
+     * Get history chart data
+     * GET /api/habits/:id/charts/history?period=day
+     */
+    getHistoryChart: async (req, res, next) => {
+        try {
+            const chartData = await habitService.getHistoryChart(req.params.id, req.userId, req.query.period);
+            res.status(200).json({ success: true, data: chartData });
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
+     * Get calendar chart data
+     * GET /api/habits/:id/charts/calendar?months=3
+     */
+    getCalendarChart: async (req, res, next) => {
+        try {
+            const chartData = await habitService.getCalendarChart(req.params.id, req.userId, req.query.months ? parseInt(req.query.months) : 3);
+            res.status(200).json({ success: true, data: chartData });
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
+     * Get frequency chart data
+     * GET /api/habits/:id/charts/frequency
+     */
+    getFrequencyChart: async (req, res, next) => {
+        try {
+            const chartData = await habitService.getFrequencyChart(req.params.id, req.userId);
+            res.status(200).json({ success: true, data: chartData });
+        } catch (error) {
+            next(error);
+        }
     }
 };
 

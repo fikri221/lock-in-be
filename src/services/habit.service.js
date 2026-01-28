@@ -1,6 +1,11 @@
 import { Habit, HabitLog } from '../models/index.js';
 import { sequelize } from '../config/database.js';
-import { format, subDays } from 'date-fns';
+import {
+    format, subDays, startOfDay, endOfDay, startOfWeek, endOfWeek,
+    startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear,
+    eachDayOfInterval, differenceInCalendarDays, getDate, getDay, getMonth,
+    parseISO, subMonths, subYears, addDays, addMonths, addYears
+} from 'date-fns';
 import { Op } from 'sequelize';
 import MoodEnergyLog from '../models/MoodEnergyLog.js';
 
@@ -404,9 +409,9 @@ class HabitService {
         });
 
         // Create map of date -> status
-        const heatmapData = {};
+        const heatmapData = [];
         logs.forEach(log => {
-            heatmapData[log.logDate] = { status: log.status, notes: log.notes };
+            heatmapData.push({ date: log.logDate, status: log.status, actualValue: Number(log.actualValue) });
         });
 
         return {
@@ -415,6 +420,388 @@ class HabitService {
             endDate,
             heatmapData
         };
+    }
+
+    /**
+     * Get target vs actual chart data
+     * @param {string} habitId 
+     * @param {string} userId 
+     * @returns {Promise<Object>}
+     */
+    async getTargetChart(habitId, userId) {
+        const habit = await this._getHabit(habitId, userId);
+        const today = new Date();
+
+        const periods = {
+            today: { start: startOfDay(today), end: endOfDay(today), days: 1 },
+            week: { start: startOfWeek(today, { weekStartsOn: 1 }), end: endOfWeek(today, { weekStartsOn: 1 }), days: 7 },
+            month: { start: startOfMonth(today), end: endOfMonth(today), days: getDate(endOfMonth(today)) },
+            quarter: { start: startOfQuarter(today), end: endOfQuarter(today), days: differenceInCalendarDays(endOfQuarter(today), startOfQuarter(today)) + 1 },
+            year: { start: startOfYear(today), end: endOfYear(today), days: differenceInCalendarDays(endOfYear(today), startOfYear(today)) + 1 }
+        };
+
+        const result = {};
+
+        for (const [key, period] of Object.entries(periods)) {
+            const logs = await HabitLog.findAll({
+                where: {
+                    habit_id: habit.id,
+                    log_date: {
+                        [Op.between]: [format(period.start, 'yyyy-MM-dd'), format(period.end, 'yyyy-MM-dd')]
+                    },
+                    status: 'COMPLETED'
+                }
+            });
+
+            // Calculate Target
+            let target = 0;
+            const targetValuePerDay = habit.habitType === 'measurable' ? parseFloat(habit.targetValue) || 1 : 1;
+
+            if (habit.frequency === 'DAILY') {
+                if (habit.targetDays && habit.targetDays.length > 0) {
+                    const daysInInterval = eachDayOfInterval({ start: period.start, end: period.end });
+                    const targetDaysSet = new Set(habit.targetDays.map(d => parseInt(d))); // targetDays are strings '1'..'7' 
+
+                    let matchCount = 0;
+                    for (const day of daysInInterval) {
+                        // getDay(): 0=Sun, 1=Mon...6=Sat
+                        // If habit.targetDays uses 1=Mon...7=Sun:
+                        let dayNum = getDay(day);
+                        if (dayNum === 0) dayNum = 7; // Convert Sun 0 to 7
+
+                        if (targetDaysSet.has(dayNum)) {
+                            matchCount++;
+                        }
+                    }
+                    target = matchCount * targetValuePerDay;
+                } else {
+                    target = period.days * targetValuePerDay;
+                }
+            } else if (habit.frequency === 'WEEKLY') {
+                if (habit.targetDays !== null) {
+                    // Target is the number of targetCount per week
+                    // habit.targetCount * targetValuePerDay = target per week
+                    // period.days / 7 = number of weeks
+                    // (period.days / 7) * (habit.targetCount * targetValuePerDay) = target
+                    target = (habit.targetCount * targetValuePerDay) * (period.days / 7);
+                } else {
+                    target = period.days * targetValuePerDay;
+                }
+            }
+
+            // TODO: Add support for monthly and yearly (WIP)
+            // else if (habit.frequency === 'MONTHLY') {
+            //     if (habit.targetDays !== null) {
+            //         target = habit.targetDays.length * targetValuePerDay;
+            //     } else {
+            //         target = period.months * targetValuePerDay;
+            //     }
+            // } else if (habit.frequency === 'YEARLY') {
+            //     if (habit.targetDays !== null) {
+            //         target = habit.targetDays.length * targetValuePerDay;
+            //     } else {
+            //         target = period.years * targetValuePerDay;
+            //     }
+            // }
+
+            // Calculate Actual
+            let actual = 0;
+            if (habit.habitType === 'measurable') {
+                actual = logs.reduce((sum, log) => sum + Number(log.actualValue || 0), 0);
+            } else {
+                actual = logs.length; // Count of COMPLETED
+            }
+
+            result[key] = {
+                actual,
+                target: Math.round(target)
+            };
+        }
+
+        return result;
+    }
+
+    /**
+     * Get score chart data (percentage over time)
+     * @param {string} habitId
+     * @param {string} userId
+     * @param {string} period 'day' | 'month' | 'year'
+     */
+    async getScoreChart(habitId, userId, period = 'day') {
+        const habit = await this._getHabit(habitId, userId);
+        const endDate = new Date();
+        let startDate;
+        let interval;
+
+        switch (period) {
+            case 'year':
+                startDate = subYears(endDate, 5); // Last 5 years
+                interval = 'year';
+                break;
+            case 'month':
+                startDate = subMonths(endDate, 11); // Last 12 months
+                interval = 'month';
+                break;
+            case 'day':
+            default:
+                startDate = subDays(endDate, 29); // Last 30 days
+                interval = 'day';
+        }
+
+        const logs = await HabitLog.findAll({
+            where: {
+                habit_id: habit.id,
+                log_date: {
+                    [Op.between]: [format(startDate, 'yyyy-MM-dd'), format(endDate, 'yyyy-MM-dd')]
+                },
+                status: 'COMPLETED'
+            }
+        });
+
+        // Group logs by date/period
+        const groupedLogs = {};
+        logs.forEach(log => {
+            let key;
+            const logDateVal = parseISO(log.logDate);
+            if (interval === 'year') key = format(logDateVal, 'yyyy');
+            else if (interval === 'month') key = format(logDateVal, 'yyyy-MM');
+            else key = log.logDate;
+
+            if (!groupedLogs[key]) groupedLogs[key] = [];
+            groupedLogs[key].push(log);
+        });
+
+        // Generate all points in interval
+        const result = [];
+        let current = startDate;
+        const targetValue = habit.habitType === 'measurable' ? (parseFloat(habit.targetValue) || 1) : 1;
+
+        while (current <= endDate) {
+            let key;
+            let label;
+            if (interval === 'year') {
+                key = format(current, 'yyyy');
+                label = format(current, 'yyyy');
+            } else if (interval === 'month') {
+                key = format(current, 'yyyy-MM');
+                label = format(current, 'MMM');
+            } else {
+                key = format(current, 'yyyy-MM-dd');
+                label = format(current, 'd'); // Day of month 1-31
+            }
+
+            const periodLogs = groupedLogs[key] || [];
+            let score = 0;
+
+            if (habit.habitType === 'measurable') {
+                const totalActual = periodLogs.reduce((sum, log) => sum + Number(log.actualValue || 0), 0);
+
+                let periodTarget = targetValue;
+                if (interval !== 'day') {
+                    // Approximate target for larger periods
+                    // This is simplified. Real logic requires counting scheduled days in period.
+                    const daysInPeriod = interval === 'year' ? 365 : (interval === 'month' ? 30 : 1);
+                    periodTarget = targetValue * daysInPeriod;
+                }
+
+                score = Math.min(100, Math.round((totalActual / periodTarget) * 100));
+            } else {
+                // Boolean
+                // Score = (Completed Count / Scheduled Count) * 100
+                const completedCount = periodLogs.length;
+                let scheduledCount = 1;
+                if (interval === 'day') {
+                    scheduledCount = 1;
+                } else {
+                    scheduledCount = interval === 'month' ? 30 : 365; // Approx
+                }
+
+                score = Math.round((completedCount / scheduledCount) * 100);
+            }
+
+            result.push({
+                date: format(current, 'yyyy-MM-dd'),
+                label,
+                score
+            });
+
+            // Increment
+            if (interval === 'year') current = addYears(current, 1);
+            else if (interval === 'month') current = addMonths(current, 1);
+            else current = addDays(current, 1);
+        }
+
+        return result;
+    }
+
+    /**
+     * Get history chart data (actual values)
+     * @param {string} habitId
+     * @param {string} userId
+     * @param {string} period 'day' | 'month' | 'year'
+     */
+    async getHistoryChart(habitId, userId, period = 'day') {
+        const habit = await this._getHabit(habitId, userId);
+        const endDate = new Date();
+        let startDate;
+        let interval;
+
+        switch (period) {
+            case 'year':
+                startDate = subYears(endDate, 5);
+                interval = 'year';
+                break;
+            case 'month':
+                startDate = subMonths(endDate, 11);
+                interval = 'month';
+                break;
+            case 'day':
+            default:
+                startDate = subDays(endDate, 29); // Last 30 days
+                interval = 'day';
+        }
+
+        const logs = await HabitLog.findAll({
+            where: {
+                habit_id: habit.id,
+                log_date: {
+                    [Op.between]: [format(startDate, 'yyyy-MM-dd'), format(endDate, 'yyyy-MM-dd')]
+                },
+                status: 'COMPLETED'
+            }
+        });
+
+        const groupedLogs = {};
+        logs.forEach(log => {
+            let key;
+            const logDateVal = parseISO(log.logDate);
+            if (interval === 'year') key = format(logDateVal, 'yyyy');
+            else if (interval === 'month') key = format(logDateVal, 'yyyy-MM');
+            else key = log.logDate;
+
+            if (!groupedLogs[key]) groupedLogs[key] = [];
+            groupedLogs[key].push(log);
+        });
+
+        const result = [];
+        let current = startDate;
+
+        while (current <= endDate) {
+            let key;
+            if (interval === 'year') key = format(current, 'yyyy');
+            else if (interval === 'month') key = format(current, 'yyyy-MM');
+            else key = format(current, 'yyyy-MM-dd');
+
+            const periodLogs = groupedLogs[key] || [];
+
+            let value = 0;
+
+            if (habit.habitType === 'measurable') {
+                value = periodLogs.reduce((sum, log) => sum + Number(log.actualValue || 0), 0);
+            } else {
+                value = periodLogs.length; // Count for boolean
+            }
+
+            result.push({
+                date: format(current, 'yyyy-MM-dd'),
+                value
+            });
+
+            if (interval === 'year') current = addYears(current, 1);
+            else if (interval === 'month') current = addMonths(current, 1);
+            else current = addDays(current, 1);
+        }
+
+        return result;
+    }
+
+    /**
+     * Get calendar heatmap data
+     * @param {string} habitId
+     * @param {string} userId
+     * @param {number} months
+     */
+    async getCalendarChart(habitId, userId, months = 3) {
+        // Use 30 days per month approx
+        const days = months * 30;
+        const heatmapData = await this.getHabitHeatmap(habitId, userId, days);
+
+        // Format compatible with frontend needs? 
+        // getHabitHeatmap returns { days, startDate, endDate, heatmapData: [{ date, count, value }] }
+        // We might need to transform it if needed, but for now passing it through.
+        // Actually, let's look at getHabitHeatmap output form again.
+        // It returns object with metadata.
+        // If frontend expects array, we should return array. 
+        // Implementation plan said: "Returns array of { date, intensity }"
+
+        // Existing getHabitHeatmap returns:
+        // heatmapData: array of objects.
+        // Let's just return that array or the whole object?
+        // Let's return the array from heatmapData property.
+
+        return heatmapData.heatmapData || [];
+    }
+
+    /**
+     * Get frequency chart data
+     * @param {string} habitId
+     * @param {string} userId
+     */
+    async getFrequencyChart(habitId, userId) {
+        const habit = await this._getHabit(habitId, userId);
+        const endDate = new Date();
+        const startDate = subYears(endDate, 1); // Last 1 year
+
+        const logs = await HabitLog.findAll({
+            where: {
+                habit_id: habit.id,
+                log_date: {
+                    [Op.between]: [format(startDate, 'yyyy-MM-dd'), format(endDate, 'yyyy-MM-dd')]
+                },
+                status: 'COMPLETED'
+            }
+        });
+
+        // Group by Month and DayOfWeek
+        // x-axis: Month (Jan..Dec)
+        // y-axis: Day (Sun..Sat)
+        // value: size of bubble
+
+        const frequencyMap = {}; // Key: "MonthIndex-DayIndex" -> value
+
+        logs.forEach(log => {
+            const date = parseISO(log.logDate);
+            const month = getMonth(date); // 0-11
+            const dayOfWeek = getDay(date); // 0 (Sun) - 6 (Sat)
+            const key = `${month}-${dayOfWeek}`;
+
+            if (!frequencyMap[key]) frequencyMap[key] = 0;
+
+            if (habit.habitType === 'measurable') {
+                frequencyMap[key] += Number(log.actualValue || 0);
+            } else {
+                frequencyMap[key] += 1;
+            }
+        });
+
+        const result = [];
+        // Helper for day names 
+        // 0=Sun
+
+        // We iterate through logs or fill all slots? 
+        // Usually frequency chart shows where activity happened.
+        // Returning only non-zero values is efficient.
+
+        for (const [key, value] of Object.entries(frequencyMap)) {
+            const [month, day] = key.split('-');
+            result.push({
+                month: parseInt(month),
+                day: parseInt(day),
+                value
+            });
+        }
+
+        return result;
     }
 
     /**
