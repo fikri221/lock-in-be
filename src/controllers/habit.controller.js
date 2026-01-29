@@ -213,8 +213,8 @@ const habitController = {
      */
     getTargetChart: async (req, res, next) => {
         try {
-            const chartData = await habitService.getTargetChart(req.params.id, req.userId);
-            res.status(200).json({ success: true, data: chartData });
+            const { result, unit } = await habitService.getTargetChart(req.params.id, req.userId);
+            res.status(200).json({ success: true, data: result, unit });
         } catch (error) {
             next(error);
         }

@@ -441,6 +441,7 @@ class HabitService {
         };
 
         const result = {};
+        let unit = '';
 
         for (const [key, period] of Object.entries(periods)) {
             const logs = await HabitLog.findAll({
@@ -516,9 +517,13 @@ class HabitService {
                 actual,
                 target: Math.round(target)
             };
+
+            if (habit.habitType === 'measurable') {
+                unit = habit.targetUnit;
+            }
         }
 
-        return result;
+        return { result, unit };
     }
 
     /**
