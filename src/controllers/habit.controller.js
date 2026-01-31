@@ -252,8 +252,8 @@ const habitController = {
      */
     getCalendarChart: async (req, res, next) => {
         try {
-            const chartData = await habitService.getCalendarChart(req.params.id, req.userId, req.query.months ? parseInt(req.query.months) : 3);
-            res.status(200).json({ success: true, data: chartData });
+            const { heatmapData, targetValue } = await habitService.getCalendarChart(req.params.id, req.userId, req.query.months ? parseInt(req.query.months) : 3);
+            res.status(200).json({ success: true, data: heatmapData, targetValue });
         } catch (error) {
             next(error);
         }

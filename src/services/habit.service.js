@@ -391,16 +391,16 @@ class HabitService {
      * @param {number} days - Number of days to look back (default: 90)
      * @returns {Promise<Object>} Heatmap data
      */
-    async getHabitHeatmap(habitId, userId, days = 90) {
+    async getHabitHeatmap(habit, days = 90) {
         // const habit = await this._getHabit(habitId, userId);
 
         const today = format(new Date(), 'yyyy-MM-dd');
         const startDate = format(subDays(today, parseInt(days) - 1), 'yyyy-MM-dd');
-        const endDate = format(today, 'yyyy-MM-dd');
+        // const endDate = format(today, 'yyyy-MM-dd');
 
         const logs = await HabitLog.findAll({
             where: {
-                habitId,
+                habitId: habit.id,
                 logDate: {
                     [Op.gte]: startDate
                 }
@@ -415,10 +415,11 @@ class HabitService {
         });
 
         return {
-            days: parseInt(days),
-            startDate,
-            endDate,
-            heatmapData
+            // days: parseInt(days),
+            // startDate,
+            // endDate,
+            heatmapData,
+            targetValue: habit.targetValue
         };
     }
 
@@ -729,7 +730,8 @@ class HabitService {
     async getCalendarChart(habitId, userId, months = 3) {
         // Use 30 days per month approx
         const days = months * 30;
-        const heatmapData = await this.getHabitHeatmap(habitId, userId, days);
+        const habit = await this._getHabit(habitId, userId);
+        const heatmapData = await this.getHabitHeatmap(habit, days);
 
         // Format compatible with frontend needs? 
         // getHabitHeatmap returns { days, startDate, endDate, heatmapData: [{ date, count, value }] }
@@ -744,7 +746,7 @@ class HabitService {
         // Let's just return that array or the whole object?
         // Let's return the array from heatmapData property.
 
-        return heatmapData.heatmapData || [];
+        return heatmapData || [];
     }
 
     /**
