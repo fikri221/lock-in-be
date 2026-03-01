@@ -8,6 +8,7 @@ import { validate, schemas } from '../middlewares/validator.js';
 router.post('/register', validate(schemas.register), authController.register);
 
 router.post('/login', validate(schemas.login), authController.login);
+router.post('/refresh', authController.refreshToken);
 router.post('/logout', authController.logout);
 
 // Protected routes

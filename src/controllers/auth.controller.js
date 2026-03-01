@@ -11,12 +11,20 @@ const authController = {
      */
     register: async (req, res, next) => {
         try {
-            const { user, token } = await authService.register(req.body);
+            const { user, accessToken, refreshToken } = await authService.register(req.body);
 
-            // Set httpOnly cookie
-            res.cookie('token', token, {
+            // Set httpOnly cookies
+            res.cookie('accessToken', accessToken, {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                maxAge: 15 * 60 * 1000 // 15 minutes
+            });
+
+            res.cookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
                 maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
             });
 
@@ -37,12 +45,20 @@ const authController = {
     login: async (req, res, next) => {
         try {
             const { email, password } = req.body;
-            const { user, token } = await authService.login(email, password);
+            const { user, accessToken, refreshToken } = await authService.login(email, password);
 
-            // Set httpOnly cookie
-            res.cookie('token', token, {
+            // Set httpOnly cookies
+            res.cookie('accessToken', accessToken, {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                maxAge: 15 * 60 * 1000 // 15 minutes
+            });
+
+            res.cookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
                 maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
             });
 
@@ -52,6 +68,47 @@ const authController = {
                 data: { user }
             });
         } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
+     * Refresh access token using refresh token
+     * POST /api/auth/refresh
+     */
+    refreshToken: async (req, res, next) => {
+        try {
+            const incomingRefreshToken = req.cookies.refreshToken;
+
+            if (!incomingRefreshToken) {
+                return res.status(401).json({ error: "No refresh token provided" });
+            }
+
+            const { accessToken, refreshToken } = await authService.refreshAuthToken(incomingRefreshToken);
+
+            // Set new httpOnly cookies
+            res.cookie('accessToken', accessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                maxAge: 15 * 60 * 1000 // 15 minutes
+            });
+
+            res.cookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            });
+
+            res.status(200).json({
+                success: true,
+                message: "Token refreshed successfully"
+            });
+        } catch (error) {
+            // Clear cookies if refresh token is invalid
+            res.clearCookie('accessToken');
+            res.clearCookie('refreshToken');
             next(error);
         }
     },
@@ -121,7 +178,15 @@ const authController = {
      */
     logout: async (req, res, next) => {
         try {
-            res.clearCookie('token');
+            const refreshToken = req.cookies.refreshToken;
+
+            if (refreshToken) {
+                await authService.logout(refreshToken);
+            }
+
+            res.clearCookie('accessToken');
+            res.clearCookie('refreshToken');
+
             res.status(200).json({
                 success: true,
                 message: "Logged out successfully"

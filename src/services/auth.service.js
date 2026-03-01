@@ -1,4 +1,4 @@
-import { User } from '../models/index.js';
+import { User, RefreshToken } from '../models/index.js';
 import { sequelize } from '../config/database.js';
 import jwt from 'jsonwebtoken';
 
@@ -31,14 +31,28 @@ class AuthService {
                 { transaction: t }
             );
 
-            // Generate JWT token
-            const token = this.generateToken(newUser.id);
+            // Generate JWT tokens
+            const { accessToken, refreshToken } = this.generateTokens(newUser.id);
+
+            // Save refresh token to database
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+
+            await RefreshToken.create(
+                {
+                    token: refreshToken,
+                    user_id: newUser.id,
+                    expires_at: expiresAt
+                },
+                { transaction: t }
+            );
 
             await t.commit();
 
             return {
                 user: newUser.toJSON(),
-                token
+                accessToken,
+                refreshToken
             };
         } catch (error) {
             await t.rollback();
@@ -71,12 +85,23 @@ class AuthService {
             throw error;
         }
 
-        // Generate JWT token
-        const token = this.generateToken(user.id);
+        // Generate JWT tokens
+        const { accessToken, refreshToken } = this.generateTokens(user.id);
+
+        // Save refresh token to database
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+
+        await RefreshToken.create({
+            token: refreshToken,
+            user_id: user.id,
+            expires_at: expiresAt
+        });
 
         return {
             user: user.toJSON(),
-            token
+            accessToken,
+            refreshToken
         };
     }
 
@@ -115,17 +140,77 @@ class AuthService {
     }
 
     /**
-     * Generate JWT token for user
+     * Generate Access and Refresh tokens for user
      * @private
      * @param {string} userId - User ID
-     * @returns {string} JWT token
+     * @returns {Object} { accessToken, refreshToken }
      */
-    generateToken(userId) {
-        return jwt.sign(
+    generateTokens(userId) {
+        const accessToken = jwt.sign(
             { id: userId },
             process.env.JWT_SECRET,
-            { expiresIn: '7d' }
+            { expiresIn: '15m' } // Access token 15 minutes
         );
+
+        const refreshToken = jwt.sign(
+            { id: userId },
+            process.env.JWT_SECRET,
+            { expiresIn: '7d' } // Refresh token 7 days
+        );
+
+        return { accessToken, refreshToken };
+    }
+
+    /**
+     * Refresh auth token
+     * @param {string} refreshToken - Refresh token string
+     * @returns {Promise<Object>} { accessToken, refreshToken }
+     */
+    async refreshAuthToken(refreshTokenStr) {
+        try {
+            // Verify token signature with JWT
+            const decoded = jwt.verify(refreshTokenStr, process.env.JWT_SECRET);
+
+            // Check if token exists in database and is not expired
+            const tokenRecord = await RefreshToken.findOne({
+                where: { token: refreshTokenStr }
+            });
+
+            if (!tokenRecord || new Date() > tokenRecord.expires_at) {
+                throw new Error('Refresh token is invalid or expired');
+            }
+
+            // Generate new tokens
+            const { accessToken, refreshToken } = this.generateTokens(decoded.id);
+
+            // Update refresh token in database (Rotation)
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + 7);
+
+            await tokenRecord.update({
+                token: refreshToken,
+                expires_at: expiresAt
+            });
+
+            return { accessToken, refreshToken };
+        } catch (error) {
+            const authError = new Error('Invalid or expired refresh token');
+            authError.statusCode = 401;
+            authError.message = error;
+            throw authError;
+        }
+    }
+
+    /**
+     * Logout user - removes refresh token from database
+     * @param {string} refreshTokenStr - Refresh token string
+     */
+    async logout(refreshTokenStr) {
+        if (refreshTokenStr) {
+            await RefreshToken.destroy({
+                where: { token: refreshTokenStr }
+            });
+        }
     }
 
     /**

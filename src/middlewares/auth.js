@@ -6,8 +6,8 @@ export const auth = async (req, res, next) => {
         // Extract token from Authorization header or Cookie
         let token;
 
-        if (req.cookies && req.cookies.token) {
-            token = req.cookies.token;
+        if (req.cookies && req.cookies.accessToken) {
+            token = req.cookies.accessToken;
         } else if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
             token = req.headers.authorization.replace("Bearer ", "");
         }
@@ -35,8 +35,8 @@ export const optionalAuth = async (req, res, next) => {
         // Extract token from Authorization header or Cookie
         let token;
 
-        if (req.cookies && req.cookies.token) {
-            token = req.cookies.token;
+        if (req.cookies && req.cookies.accessToken) {
+            token = req.cookies.accessToken;
         } else if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
             token = req.headers.authorization.replace("Bearer ", "");
         }

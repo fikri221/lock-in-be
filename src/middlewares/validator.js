@@ -26,11 +26,11 @@ const schemas = {
     // Auth schemas
     register: Joi.object({
         name: Joi.string().alphanum().min(2).max(255).required(),
-        email: Joi.string().email().required(),
+        email: Joi.string().email().lowercase().required(),
         password: Joi.string().min(6).required()
     }),
     login: Joi.object({
-        email: Joi.string().email().required(),
+        email: Joi.string().email().lowercase().required(),
         password: Joi.string().required()
     }),
 
