@@ -1,7 +1,7 @@
 import express from 'express';
 const router = express.Router();
 import authController from '../controllers/auth.controller.js';
-import { optionalAuth } from '../middlewares/auth.js';
+import { auth } from '../middlewares/auth.js';
 import { validate, schemas } from '../middlewares/validator.js';
 
 // Public routes
@@ -12,6 +12,6 @@ router.post('/refresh', authController.refreshToken);
 router.post('/logout', authController.logout);
 
 // Protected routes
-router.get("/me", optionalAuth, authController.me);
+router.get("/me", auth, authController.me);
 
 export default router;
