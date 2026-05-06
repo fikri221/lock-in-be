@@ -29,8 +29,12 @@ app.use(helmet());
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  origin: [
+    process.env.FRONTEND_URL,
+    "http://localhost:3000",
+    "http://127.0.0.1:3000"
+  ].filter(Boolean),
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true,
 })); // Biar bisa dipanggil dari frontend Next.js
 
@@ -177,6 +181,7 @@ const startServer = async () => {
     });
   } catch (error) {
     console.error("❌ Failed to start server:", error);
+
     process.exit(1);
   }
 };
