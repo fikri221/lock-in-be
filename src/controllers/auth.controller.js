@@ -73,6 +73,40 @@ const authController = {
     },
 
     /**
+     * Login with Google
+     * POST /api/auth/google
+     */
+    googleLogin: async (req, res, next) => {
+        try {
+            const { credential } = req.body; // credential is the Google ID Token
+            const { user, accessToken, refreshToken } = await authService.googleLogin(credential);
+
+            // Set httpOnly cookies
+            res.cookie('accessToken', accessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                maxAge: 15 * 60 * 1000 // 15 minutes
+            });
+
+            res.cookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            });
+
+            res.status(200).json({
+                success: true,
+                message: "Google login successful",
+                data: { user }
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
      * Refresh access token using refresh token
      * POST /api/auth/refresh
      */

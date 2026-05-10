@@ -1,7 +1,9 @@
 import { User, RefreshToken } from '../models/index.js';
 import { sequelize } from '../config/database.js';
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 /**
  * Auth Service - Contains all authentication business logic
  */
@@ -103,6 +105,62 @@ class AuthService {
             accessToken,
             refreshToken
         };
+    }
+
+    /**
+     * Login or Register user with Google
+     * @param {string} idToken - Google ID token
+     * @returns {Promise<Object>} { user, token }
+     */
+    async googleLogin(idToken) {
+        try {
+            const ticket = await client.verifyIdToken({
+                idToken,
+                audience: process.env.GOOGLE_CLIENT_ID,
+            });
+            const payload = ticket.getPayload();
+            const { email, name } = payload;
+
+            // Find or create user
+            let user = await User.findOne({ where: { email } });
+
+            if (!user) {
+                // Create user without password
+                user = await User.create({
+                    name,
+                    email,
+                    password: null // Password allowed to be null now
+                });
+            }
+
+            // Generate JWT tokens
+            const { accessToken, refreshToken } = this.generateTokens(user.id);
+
+            // Save refresh token to database
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+
+            await RefreshToken.create({
+                token: refreshToken,
+                user_id: user.id,
+                expires_at: expiresAt
+            });
+
+            return {
+                user: user.toJSON(),
+                accessToken,
+                refreshToken
+            };
+        } catch (error) {
+            console.error('❌ Google login verification failed:', {
+                message: error.message,
+                stack: error.stack,
+                token_preview: idToken ? `${idToken.substring(0, 10)}...` : 'null'
+            });
+            const authError = new Error('Invalid Google token');
+            authError.statusCode = 401;
+            throw authError;
+        }
     }
 
     /**

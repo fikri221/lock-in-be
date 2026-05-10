@@ -22,7 +22,7 @@ const User = sequelize.define("User", {
     },
     password: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
     },
     timezone: {
         type: DataTypes.STRING,
@@ -33,11 +33,13 @@ const User = sequelize.define("User", {
     hooks: {
         // Hash password before saving user
         beforeCreate: async (user) => {
-            const salt = await bcryptjs.genSalt(10);
-            user.password = await bcryptjs.hash(user.password, salt);
+            if (user.password) {
+                const salt = await bcryptjs.genSalt(10);
+                user.password = await bcryptjs.hash(user.password, salt);
+            }
         },
         beforeUpdate: async (user) => {
-            if (user.changed("password")) {
+            if (user.changed("password") && user.password) {
                 const salt = await bcryptjs.genSalt(10);
                 user.password = await bcryptjs.hash(user.password, salt);
             }
@@ -46,6 +48,7 @@ const User = sequelize.define("User", {
 });
 
 User.prototype.comparePassword = async function (newPassword) {
+    if (!this.password) return false;
     return await bcryptjs.compare(newPassword, this.password);
 }
 
