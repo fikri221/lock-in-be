@@ -7,7 +7,6 @@ import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import compression from "compression";
 
-
 import cookieParser from "cookie-parser";
 
 // Import local modules dengan ekstensi .js
@@ -17,9 +16,12 @@ import { sequelize, testConnection } from "./src/config/database.js";
 // Import routes
 import authRoutes from "./src/routes/auth.js";
 import habitRoutes from "./src/routes/habit.js";
+import notificationRoutes from "./src/routes/notification.js";
+
+// Import scheduler
+import { startScheduler } from "./src/services/scheduler.js";
 
 dotenv.config();
-
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -85,6 +87,7 @@ app.get("/health", (req, res) => {
 // API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/habits", habitRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // 404 handler
 // app.use('*', (req, res) => {
@@ -181,6 +184,9 @@ const startServer = async () => {
       console.log(`📝 Environment: ${process.env.NODE_ENV}`);
       console.log(`🔗 API URL: http://localhost:${PORT}/api/`);
       console.log(`💚 Health Check: http://localhost:${PORT}/health\n`);
+
+      // Start notification scheduler
+      startScheduler();
     });
   } catch (error) {
     console.error("❌ Failed to start server:", error);

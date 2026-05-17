@@ -2,6 +2,7 @@ import User from './User.js';
 import Habit from './Habit.js';
 import HabitLog from './HabitLog.js';
 import RefreshToken from './RefreshToken.js';
+import PushSubscription from './PushSubscription.js';
 
 // Define associations
 User.hasMany(Habit, { foreignKey: 'userId', as: 'habits' });
@@ -16,9 +17,13 @@ HabitLog.belongsTo(Habit, { foreignKey: 'habitId', as: 'habit' });
 User.hasMany(RefreshToken, { foreignKey: 'user_id', as: 'refreshTokens' });
 RefreshToken.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
+User.hasMany(PushSubscription, { foreignKey: 'userId', as: 'pushSubscriptions' });
+PushSubscription.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
 export {
     User,
     Habit,
     HabitLog,
-    RefreshToken
+    RefreshToken,
+    PushSubscription
 };

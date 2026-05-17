@@ -28,6 +28,18 @@ const User = sequelize.define("User", {
         type: DataTypes.STRING,
         defaultValue: "Asia/Jakarta",
     },
+    notificationEnabled: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+        field: "notification_enabled",
+        comment: "TRUE if user wants to receive notifications",
+    },
+    reminderTime: {
+        type: DataTypes.TIME,
+        defaultValue: "08:00",
+        field: "reminder_time",
+        comment: "Default time to send reminders",
+    },
 }, {
     tableName: "users",
     hooks: {
