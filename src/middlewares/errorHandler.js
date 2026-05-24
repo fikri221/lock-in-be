@@ -1,4 +1,5 @@
-const errorHandler = (err, _req, res) => {
+// eslint-disable-next-line no-unused-vars
+const errorHandler = (err, _req, res, _next) => {
   // Sequelize validation error
   if (err.name === "SequelizeValidationError") {
     const messages = err.errors.map((e) => e.message);
