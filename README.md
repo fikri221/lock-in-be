@@ -7,7 +7,7 @@ Lock-In is a productivity and habit-tracking application designed to help users 
 - **Authentication System**: Secure login/register with JWT and Refresh Tokens (using HTTP-only cookies).
 - **Habit Tracking**: Full CRUD operations for managing habits.
 - **AI Productivity Assistant**: Integration with OpenAI to generate personalized daily schedules.
-- **Security First**: 
+- **Security First**:
   - Helmet for security headers.
   - CORS configuration.
   - Rate limiting to prevent abuse.
@@ -35,22 +35,25 @@ Lock-In is a productivity and habit-tracking application designed to help users 
 ## ⚙️ Getting Started
 
 ### 1. Clone the repository
+
 ```bash
 git clone https://github.com/fikri221/lock-in-be.git
 cd lock-in-be
 ```
 
 ### 2. Install dependencies
+
 ```bash
 npm install
 ```
 
 ### 3. Environment Setup
+
 Create a `.env` file in the root directory and configure the following variables:
 
 ```env
 NODE_ENV = development
-PORT = 5000
+PORT = 8080
 
 # Database Configuration
 DATABASE_URL = postgresql://user:password@localhost:5432/lock_in
@@ -82,6 +85,7 @@ USE_DUMMY = true
 ```
 
 ### 4. Database Migration & Seeding
+
 ```bash
 # Run migrations
 npm run migrate
@@ -91,6 +95,7 @@ npm run seed
 ```
 
 ### 5. Running the Application
+
 ```bash
 # Development mode with nodemon
 npm run dev
@@ -102,29 +107,35 @@ npm start
 ## 🛣 API Endpoints
 
 ### Auth
+
 - `POST /api/auth/register` - Register a new user
 - `POST /api/auth/login` - Login and receive tokens
 - `POST /api/auth/logout` - Clear cookies and logout
 - `POST /api/auth/refresh` - Refresh access token
 
 ### Habits
+
 - `GET /api/habits` - Get all habits for the authenticated user
 - `POST /api/habits` - Create a new habit
 - `PUT /api/habits/:id` - Update a habit
 - `DELETE /api/habits/:id` - Delete a habit
 
 ### AI Assistant
+
 - `POST /api/ai` - Generate a productive schedule based on a prompt
 
 ### System
+
 - `GET /health` - Check API health status
 
 ## 🧪 Testing
+
 ```bash
 npm test
 ```
 
 ## 📁 Project Structure
+
 ```
 lock-in-be/
 ├── src/
@@ -140,7 +151,9 @@ lock-in-be/
 ```
 
 ## 📄 License
+
 This project is licensed under the MIT License.
 
 ---
+
 Built with ❤️ by [Fikri Lazuardi](https://github.com/fikri221)
