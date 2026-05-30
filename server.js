@@ -173,8 +173,11 @@ const startServer = async () => {
     // Test database connection
     await testConnection();
 
-    // Sync database models (dev only)
-    if (process.env.NODE_ENV === "development") {
+    // Sync database models (dev && production)
+    if (
+      process.env.NODE_ENV === "development" ||
+      process.env.NODE_ENV === "production"
+    ) {
       await sequelize.sync({ alter: true });
       console.log("✅ Database synchronized");
     }
