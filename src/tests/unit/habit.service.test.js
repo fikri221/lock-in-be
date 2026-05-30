@@ -1,233 +1,382 @@
-/**
- * Unit Tests for HabitService
- * 
- * This file contains simple unit tests to verify that our HabitService
- * methods work correctly. We'll test the calculateStats method as an example.
- */
+import { jest } from '@jest/globals';
 
-import habitService from '../../services/habit.service.js';
-import { sequelize } from '../../config/database.js';
+// 1. Mock database config (sequelize transactions)
+const mockTransaction = {
+    commit: jest.fn(),
+    rollback: jest.fn()
+};
+jest.unstable_mockModule('../../config/database.js', () => ({
+    sequelize: {
+        transaction: jest.fn().mockResolvedValue(mockTransaction)
+    }
+}));
 
-afterAll(async () => {
-    await sequelize.close();
-});
+// 2. Mock database models
+const mockHabitInstance = {
+    id: 'habit-123',
+    userId: 'user-123',
+    name: 'Read Books',
+    description: 'Read 10 pages',
+    category: 'LEARNING',
+    scheduledTime: '08:00',
+    isActive: true,
+    currentStreak: 2,
+    longestStreak: 5,
+    totalCompletions: 10,
+    habitType: 'boolean',
+    targetValue: '1',
+    frequency: 'DAILY',
+    targetDays: [1, 2, 3, 4, 5],
+    update: jest.fn(),
+    increment: jest.fn(),
+    decrement: jest.fn(),
+    reload: jest.fn()
+};
 
-/**
- * Test Suite for createHabit method
- * This tests the habit creation logic
- */
-describe('HabitService - createHabit', () => {
-    test('should create a new habit', async () => {
-        // ARRANGE
-        const newHabit = {
-            userId: 'd9c95c3b-c488-4a3c-bb04-b9a7ab3a4d43',
-            name: 'Test Habit',
-            description: 'This is a test habit',
-            category: 'WORK'
-        };
+const mockHabitLogInstance = {
+    id: 'log-123',
+    habitId: 'habit-123',
+    userId: 'user-123',
+    logDate: '2026-05-30',
+    status: 'COMPLETED',
+    actualValue: 1,
+    update: jest.fn(),
+    destroy: jest.fn()
+};
 
-        // ACT
-        const result = await habitService.createHabit(newHabit, newHabit.userId);
+const mockMoodLogInstance = {
+    id: 'mood-123',
+    userId: 'user-123',
+    logDate: '2026-05-30',
+    mood: 4,
+    energy: 5,
+    notes: 'Feeling good'
+};
 
-        // ASSERT
-        expect(result).toBeDefined();
-        expect(result.name).toBe('Test Habit');
-        expect(result.description).toBe('This is a test habit');
-        expect(result.category).toBe('WORK');
-        expect(result.userId).toBe(newHabit.userId);
-    });
-})
+const mockHabit = {
+    create: jest.fn(),
+    findAll: jest.fn(),
+    findOne: jest.fn()
+};
 
+const mockHabitLog = {
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    upsert: jest.fn()
+};
 
-/**
- * Test Suite for getHabits method
- * This tests the habit retrieval logic
- */
-describe('HabitService - getHabits', () => {
-    test('should get habits', async () => {
-        // ARRANGE
-        const userId = 'd9c95c3b-c488-4a3c-bb04-b9a7ab3a4d43';
+const mockMoodEnergyLog = {
+    upsert: jest.fn()
+};
 
-        // ACT
-        const result = await habitService.getUserHabits(userId);
+jest.unstable_mockModule('../../models/index.js', () => ({
+    Habit: mockHabit,
+    HabitLog: mockHabitLog
+}));
 
-        // ASSERT
-        expect(result).toBeDefined();
-    });
-})
+jest.unstable_mockModule('../../models/MoodEnergyLog.js', () => ({
+    default: mockMoodEnergyLog
+}));
 
-/**
- * Test Suite for getHabitById method
- * This tests the habit retrieval logic
- */
-describe('HabitService - getHabitById', () => {
-    test('should get habit by id', async () => {
-        // ARRANGE
-        const userId = 'd9c95c3b-c488-4a3c-bb04-b9a7ab3a4d43';
-        const habitId = '5a8f538e-1da8-4e41-8355-ed28caf1449b';
+// Dynamically import the service and mocked modules
+const { default: habitService } = await import('../../services/habit.service.js');
 
-        // ACT
-        const result = await habitService.getHabitById(habitId, userId);
+describe('HabitService Unit Tests', () => {
 
-        // ASSERT
-        expect(result).toBeDefined();
-    });
-})
-
-/**
- * Test Suite for updateHabit method
- * This tests the habit update logic
- */
-describe('HabitService - updateHabit', () => {
-    test('should update habit', async () => {
-        // ARRANGE
-        const userId = '587dd4f4-e2c8-48bb-b327-09d5a434876f';
-        const habitId = 'c8125a16-88c4-4add-a7e3-85f904bdbe39';
-        const updatedHabit = {
-            name: 'Updated Habit',
-            description: 'This is an updated habit',
-        };
-
-        // ACT
-        const result = await habitService.updateHabit(habitId, userId, updatedHabit);
-
-        // ASSERT
-        expect(result).toBeDefined();
-        expect(result.name).toBe('Updated Habit');
-        expect(result.description).toBe('This is an updated habit');
-    });
-})
-
-/**
- * Test Suite for getHabitStats method
- * This tests the habit statistics retrieval logic
- */
-describe('HabitService - getHabitStats', () => {
-    test('should get habit stats', async () => {
-        // ARRANGE
-        const userId = 'd9c95c3b-c488-4a3c-bb04-b9a7ab3a4d43';
-        const habitId = '5a8f538e-1da8-4e41-8355-ed28caf1449b';
-        const day = 30;
-
-        // ACT
-        const result = await habitService.getHabitStats(habitId, userId, day);
-
-        // ASSERT
-        expect(result).toBeDefined();
-    });
-})
-
-/**
- * Test Suite for calculateStats method
- * This tests the habit statistics calculation logic
- */
-describe('HabitService - calculateStats', () => {
-
-    /**
-     * Test Case 1: Testing with completed habits
-     * The "test" (or "it") function defines a single test
-     */
-    test('should calculate stats correctly with completed and skipped logs', () => {
-        // ARRANGE: Set up test data
-        // We create fake log data to test our function
-        const mockLogs = [
-            { status: 'COMPLETED' },
-            { status: 'COMPLETED' },
-            { status: 'COMPLETED' },
-            { status: 'SKIPPED' },
-            { status: 'SKIPPED' }
-        ];
-
-        // ACT: Call the method we want to test
-        const result = habitService.calculateStats(mockLogs);
-
-        // ASSERT: Check if the result is what we expect
-        expect(result.totalLogs).toBe(5);
-        expect(result.completedCount).toBe(3);
-        expect(result.skippedCount).toBe(2);
-        expect(result.completionRate).toBe(60); // 3/5 = 60%
+    beforeEach(() => {
+        jest.clearAllMocks();
     });
 
-    /**
-     * Test Case 2: Testing with empty logs
-     */
-    test('should return zero stats for empty logs array', () => {
-        // ARRANGE
-        const emptyLogs = [];
+    describe('createHabit', () => {
+        test('should create a new habit with valid time', async () => {
+            const habitData = {
+                name: 'Read Books',
+                category: 'LEARNING',
+                scheduledTime: '08:00'
+            };
+            mockHabit.create.mockResolvedValue(mockHabitInstance);
 
-        // ACT
-        const result = habitService.calculateStats(emptyLogs);
+            const result = await habitService.createHabit(habitData, 'user-123');
 
-        // ASSERT
-        expect(result.totalLogs).toBe(0);
-        expect(result.completedCount).toBe(0);
-        expect(result.skippedCount).toBe(0);
-        expect(result.completionRate).toBe(0);
+            expect(mockHabit.create).toHaveBeenCalledWith(
+                { ...habitData, userId: 'user-123' },
+                { transaction: mockTransaction }
+            );
+            expect(mockTransaction.commit).toHaveBeenCalled();
+            expect(result).toEqual(mockHabitInstance);
+        });
+
+        test('should throw error for invalid scheduled time format', async () => {
+            const habitData = {
+                name: 'Read Books',
+                scheduledTime: '25:00' // Invalid time
+            };
+
+            await expect(habitService.createHabit(habitData, 'user-123'))
+                .rejects.toThrow('Invalid scheduled time format. Use HH:MM format.');
+
+            expect(mockHabit.create).not.toHaveBeenCalled();
+            expect(mockTransaction.rollback).toHaveBeenCalled();
+        });
     });
 
-    /**
-     * Test Case 3: Testing with all completed logs
-     */
-    test('should return 100% completion rate when all logs are completed', () => {
-        // ARRANGE
-        const allCompletedLogs = [
-            { status: 'COMPLETED' },
-            { status: 'COMPLETED' },
-            { status: 'COMPLETED' }
-        ];
+    describe('getUserHabits', () => {
+        test('should retrieve user habits with filters', async () => {
+            mockHabit.findAll.mockResolvedValue([mockHabitInstance]);
 
-        // ACT
-        const result = habitService.calculateStats(allCompletedLogs);
+            const result = await habitService.getUserHabits('user-123', { active: 'true' });
 
-        // ASSERT
-        expect(result.totalLogs).toBe(3);
-        expect(result.completedCount).toBe(3);
-        expect(result.skippedCount).toBe(0);
-        expect(result.completionRate).toBe(100); // 3/3 = 100%
+            expect(mockHabit.findAll).toHaveBeenCalledWith(expect.objectContaining({
+                where: { userId: 'user-123', isActive: true }
+            }));
+            expect(result).toEqual([mockHabitInstance]);
+        });
     });
 
-    /**
-     * Test Case 4: Testing with all skipped logs
-     */
-    test('should return 0% completion rate when all logs are skipped', () => {
-        // ARRANGE
-        const allSkippedLogs = [
-            { status: 'SKIPPED' },
-            { status: 'SKIPPED' }
-        ];
+    describe('getHabitById', () => {
+        test('should retrieve habit by id', async () => {
+            mockHabit.findOne.mockResolvedValue(mockHabitInstance);
 
-        // ACT
-        const result = habitService.calculateStats(allSkippedLogs);
+            const result = await habitService.getHabitById('habit-123', 'user-123');
 
-        // ASSERT
-        expect(result.totalLogs).toBe(2);
-        expect(result.completedCount).toBe(0);
-        expect(result.skippedCount).toBe(2);
-        expect(result.completionRate).toBe(0); // 0/2 = 0%
-    });
-});
+            expect(mockHabit.findOne).toHaveBeenCalledWith(expect.objectContaining({
+                where: { id: 'habit-123', userId: 'user-123' }
+            }));
+            expect(result).toEqual(mockHabitInstance);
+        });
 
-/**
- * Test Suite for isValidTime method
- * This tests the time validation helper
- */
-describe('HabitService - isValidTime', () => {
+        test('should throw 404 error if habit is not found', async () => {
+            mockHabit.findOne.mockResolvedValue(null);
 
-    test('should return true for valid time format', () => {
-        // Test various valid times
-        expect(habitService.isValidTime('09:30')).toBe(true);
-        expect(habitService.isValidTime('00:00')).toBe(true);
-        expect(habitService.isValidTime('23:59')).toBe(true);
-        expect(habitService.isValidTime('12:00')).toBe(true);
+            await expect(habitService.getHabitById('nonexistent-habit', 'user-123'))
+                .rejects.toThrow('Habit not found');
+        });
     });
 
-    test('should return false for invalid time format', () => {
-        // Test various invalid times
-        expect(habitService.isValidTime('25:00')).toBe(false); // Invalid hour
-        expect(habitService.isValidTime('12:60')).toBe(false); // Invalid minute
-        expect(habitService.isValidTime('9:30')).toBe(false);  // Missing leading zero
-        expect(habitService.isValidTime('12:5')).toBe(false);  // Missing leading zero
-        expect(habitService.isValidTime('abc')).toBe(false);   // Not a time
-        expect(habitService.isValidTime('')).toBe(false);      // Empty string
+    describe('updateHabit', () => {
+        test('should update habit successfully', async () => {
+            mockHabit.findOne.mockResolvedValue(mockHabitInstance);
+            mockHabitInstance.update.mockResolvedValue(mockHabitInstance);
+
+            const result = await habitService.updateHabit('habit-123', 'user-123', { name: 'Read Manga' });
+
+            expect(mockHabitInstance.update).toHaveBeenCalledWith(
+                { name: 'Read Manga' },
+                { transaction: mockTransaction }
+            );
+            expect(mockTransaction.commit).toHaveBeenCalled();
+            expect(result).toEqual(mockHabitInstance);
+        });
+    });
+
+    describe('deleteHabit', () => {
+        test('should soft delete habit by setting isActive to false', async () => {
+            mockHabit.findOne.mockResolvedValue(mockHabitInstance);
+            mockHabitInstance.update.mockResolvedValue(mockHabitInstance);
+
+            await habitService.deleteHabit('habit-123', 'user-123');
+
+            expect(mockHabitInstance.update).toHaveBeenCalledWith(
+                { isActive: false },
+                { transaction: mockTransaction }
+            );
+            expect(mockTransaction.commit).toHaveBeenCalled();
+        });
+    });
+
+    describe('logHabitCompletion', () => {
+        test('should log completion and increment completions and streaks', async () => {
+            mockHabit.findOne.mockResolvedValue(mockHabitInstance);
+            mockHabitLog.findOne.mockResolvedValue(null); // No existing log
+            mockHabitLog.upsert.mockResolvedValue([mockHabitLogInstance, true]); // created = true
+            mockHabitInstance.increment.mockResolvedValue(mockHabitInstance);
+            mockHabitInstance.reload.mockResolvedValue(mockHabitInstance);
+            // Mock yesterday log to be null -> sets streak to 1
+            mockHabitLog.findOne.mockResolvedValueOnce(null);
+
+            const result = await habitService.logHabitCompletion('habit-123', 'user-123', {
+                status: 'COMPLETED',
+                logDate: '2026-05-30'
+            });
+
+            expect(mockHabitLog.upsert).toHaveBeenCalledWith(
+                expect.objectContaining({ status: 'COMPLETED', logDate: '2026-05-30' }),
+                { returning: true, transaction: mockTransaction }
+            );
+            expect(mockHabitInstance.increment).toHaveBeenCalledWith('totalCompletions', { transaction: mockTransaction });
+            expect(mockHabitInstance.increment).toHaveBeenCalledWith('currentStreak', { transaction: mockTransaction });
+            expect(mockTransaction.commit).toHaveBeenCalled();
+            expect(result.habitLog).toEqual(mockHabitLogInstance);
+        });
+    });
+
+    describe('logMoodEnergy', () => {
+        test('should log mood and energy successfully', async () => {
+            mockMoodEnergyLog.upsert.mockResolvedValue([mockMoodLogInstance, true]);
+
+            const result = await habitService.logMoodEnergy('user-123', {
+                mood: 4,
+                energy: 5,
+                notes: 'Feeling good'
+            });
+
+            expect(mockMoodEnergyLog.upsert).toHaveBeenCalledWith(
+                expect.objectContaining({ mood: 4, energy: 5, notes: 'Feeling good' }),
+                { returning: true, transaction: mockTransaction }
+            );
+            expect(result.moodEnergyLog).toEqual(mockMoodLogInstance);
+        });
+    });
+
+    describe('cancelCompletion', () => {
+        test('should cancel habit completion, changing status to CANCELLED', async () => {
+            mockHabit.findOne.mockResolvedValue(mockHabitInstance);
+            mockHabitLog.findOne.mockResolvedValue(mockHabitLogInstance); // completed log exists
+            mockHabitLogInstance.update.mockResolvedValue(mockHabitLogInstance);
+
+            const result = await habitService.cancelCompletion('habit-123', 'user-123', {
+                cancelledReason: 'sick',
+                logDate: '2026-05-30'
+            });
+
+            expect(mockHabitLogInstance.update).toHaveBeenCalledWith(
+                expect.objectContaining({ status: 'CANCELLED', cancelledReason: 'sick' }),
+                { transaction: mockTransaction }
+            );
+            expect(mockHabitInstance.decrement).toHaveBeenCalledWith('totalCompletions', { transaction: mockTransaction });
+            expect(mockHabitInstance.decrement).toHaveBeenCalledWith('currentStreak', { transaction: mockTransaction });
+            expect(mockTransaction.commit).toHaveBeenCalled();
+            expect(result).toEqual(mockHabitLogInstance);
+        });
+    });
+
+    describe('getHabitStats & analytical charts', () => {
+        test('should calculate statistics and return stats report', async () => {
+            mockHabit.findOne.mockResolvedValue(mockHabitInstance);
+            mockHabitLog.findAll.mockResolvedValue([
+                { status: 'COMPLETED', logDate: '2026-05-29' },
+                { status: 'COMPLETED', logDate: '2026-05-30' }
+            ]);
+
+            const result = await habitService.getHabitStats('habit-123', 'user-123', 7);
+
+            expect(result.habit.name).toBe('Read Books');
+            expect(result.stats.totalLogs).toBe(2);
+            expect(result.stats.completedCount).toBe(2);
+            expect(result.stats.completionRate).toBe(100);
+        });
+
+        test('should generate heatmap data', async () => {
+            mockHabit.findOne.mockResolvedValue(mockHabitInstance);
+            mockHabitLog.findAll.mockResolvedValue([
+                { logDate: '2026-05-30', status: 'COMPLETED', actualValue: 1 }
+            ]);
+
+            const result = await habitService.getHabitHeatmap('habit-123', 'user-123', 30);
+
+            expect(result.heatmapData).toEqual([{ date: '2026-05-30', status: 'COMPLETED', actualValue: 1 }]);
+            expect(result.targetValue).toBe('1');
+        });
+
+        test('should generate target chart data', async () => {
+            mockHabit.findOne.mockResolvedValue(mockHabitInstance);
+            mockHabitLog.findAll.mockResolvedValue([
+                { status: 'COMPLETED', actualValue: 1, logDate: '2026-05-30' }
+            ]);
+
+            const result = await habitService.getTargetChart('habit-123', 'user-123');
+
+            expect(result.result).toBeDefined();
+            expect(result.result.today).toBeDefined();
+            expect(result.result.week).toBeDefined();
+        });
+
+        test('should generate score chart data', async () => {
+            mockHabit.findOne.mockResolvedValue(mockHabitInstance);
+            mockHabitLog.findAll.mockResolvedValue([
+                { status: 'COMPLETED', actualValue: 1, logDate: '2026-05-30' }
+            ]);
+
+            const result = await habitService.getScoreChart('habit-123', 'user-123', 'day');
+
+            expect(Array.isArray(result)).toBe(true);
+            expect(result.length).toBeGreaterThan(0);
+        });
+
+        test('should generate history chart data', async () => {
+            mockHabit.findOne.mockResolvedValue(mockHabitInstance);
+            mockHabitLog.findAll.mockResolvedValue([
+                { status: 'COMPLETED', actualValue: 1, logDate: '2026-05-30' }
+            ]);
+
+            const result = await habitService.getHistoryChart('habit-123', 'user-123', 'day');
+
+            expect(Array.isArray(result)).toBe(true);
+            expect(result.length).toBeGreaterThan(0);
+        });
+
+        test('should generate calendar chart data', async () => {
+            mockHabit.findOne.mockResolvedValue(mockHabitInstance);
+            mockHabitLog.findAll.mockResolvedValue([
+                { status: 'COMPLETED', actualValue: 1, logDate: '2026-05-30' }
+            ]);
+
+            const result = await habitService.getCalendarChart('habit-123', 'user-123', 3);
+
+            expect(result.heatmapData).toBeDefined();
+        });
+
+        test('should generate frequency chart data', async () => {
+            mockHabit.findOne.mockResolvedValue(mockHabitInstance);
+            mockHabitLog.findAll.mockResolvedValue([
+                { status: 'COMPLETED', actualValue: 1, logDate: '2026-05-30' }
+            ]);
+
+            const result = await habitService.getFrequencyChart('habit-123', 'user-123');
+
+            expect(Array.isArray(result)).toBe(true);
+        });
+    });
+
+    describe('calculateStats helper', () => {
+        test('should compute stats with completed and skipped logs correctly', () => {
+            const logs = [
+                { status: 'COMPLETED', logDate: '2026-05-25' },
+                { status: 'SKIPPED', logDate: '2026-05-26' },
+                { status: 'COMPLETED', logDate: '2026-05-27' }
+            ];
+
+            const result = habitService.calculateStats(logs);
+
+            expect(result.totalLogs).toBe(3);
+            expect(result.completedCount).toBe(2);
+            expect(result.skippedCount).toBe(1);
+            expect(result.completionRate).toBe(67);
+            expect(result.bestDay).toBeDefined();
+        });
+
+        test('should return empty stats structure for empty logs array', () => {
+            const result = habitService.calculateStats([]);
+
+            expect(result.totalLogs).toBe(0);
+            expect(result.completedCount).toBe(0);
+            expect(result.skippedCount).toBe(0);
+            expect(result.completionRate).toBe(0);
+            expect(result.bestDay).toBeNull();
+        });
+    });
+
+    describe('isValidTime helper', () => {
+        test('should validate correct HH:MM format', () => {
+            expect(habitService.isValidTime('09:30')).toBe(true);
+            expect(habitService.isValidTime('23:59')).toBe(true);
+        });
+
+        test('should reject invalid times', () => {
+            expect(habitService.isValidTime('24:00')).toBe(false);
+            expect(habitService.isValidTime('12:60')).toBe(false);
+            expect(habitService.isValidTime('9:30')).toBe(false);
+            expect(habitService.isValidTime('abc')).toBe(false);
+        });
     });
 });

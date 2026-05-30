@@ -391,11 +391,18 @@ class HabitService {
      * @param {number} days - Number of days to look back (default: 90)
      * @returns {Promise<Object>} Heatmap data
      */
-    async getHabitHeatmap(habit, days = 90) {
-        // const habit = await this._getHabit(habitId, userId);
+    async getHabitHeatmap(habitOrId, userIdOrDays, days = 90) {
+        let habit;
+        let actualDays = days;
+        if (typeof habitOrId === 'string') {
+            habit = await this._getHabit(habitOrId, userIdOrDays);
+        } else {
+            habit = habitOrId;
+            actualDays = userIdOrDays || days;
+        }
 
         const today = format(new Date(), 'yyyy-MM-dd');
-        const startDate = format(subDays(today, parseInt(days) - 1), 'yyyy-MM-dd');
+        const startDate = format(subDays(today, parseInt(actualDays) - 1), 'yyyy-MM-dd');
         // const endDate = format(today, 'yyyy-MM-dd');
 
         const logs = await HabitLog.findAll({
@@ -415,7 +422,7 @@ class HabitService {
         });
 
         return {
-            // days: parseInt(days),
+            // days: parseInt(actualDays),
             // startDate,
             // endDate,
             heatmapData,
